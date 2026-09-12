@@ -100,6 +100,7 @@ class RouteMetrics:
     total_distance_km: float
     estimated_time_hours: float
     estimated_fuel_tons: float
+    estimated_fuel_cost_usd: float  # Benchmark fuel cost estimate in USD
     mean_risk_score: float
     max_risk_score: float
     safety_index: float  # Normalized score 0-100 (higher is safer)
@@ -111,6 +112,7 @@ class RouteMetrics:
             "total_distance_km": round(self.total_distance_km, 2),
             "estimated_time_hours": round(self.estimated_time_hours, 2),
             "estimated_fuel_tons": round(self.estimated_fuel_tons, 2),
+            "estimated_fuel_cost_usd": round(self.estimated_fuel_cost_usd, 2),
             "mean_risk_score": round(self.mean_risk_score, 4),
             "max_risk_score": round(self.max_risk_score, 4),
             "safety_index": round(self.safety_index, 1),

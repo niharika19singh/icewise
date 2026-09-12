@@ -34,6 +34,13 @@ from tests.test_pipeline import (
     test_navigation_engine_end_to_end,
     test_route_recalculation_on_prediction_update,
 )
+from tests.test_audit_scenarios import (
+    test_scenario_1_normal_safe_environment,
+    test_scenario_2_iceberg_blocking_shortest_route,
+    test_scenario_3_high_risk_region_avoidance,
+    test_scenario_4_no_feasible_route,
+    test_scenario_5_changed_iceberg_prediction_recalculation,
+)
 
 
 def run_all_tests():
@@ -52,6 +59,11 @@ def run_all_tests():
         ("test_risk_avoidance_behavior", test_risk_avoidance_behavior),
         ("test_navigation_engine_end_to_end", test_navigation_engine_end_to_end),
         ("test_route_recalculation_on_prediction_update", test_route_recalculation_on_prediction_update),
+        ("test_scenario_1_normal_safe_environment", test_scenario_1_normal_safe_environment),
+        ("test_scenario_2_iceberg_blocking_shortest_route", test_scenario_2_iceberg_blocking_shortest_route),
+        ("test_scenario_3_high_risk_region_avoidance", test_scenario_3_high_risk_region_avoidance),
+        ("test_scenario_4_no_feasible_route", test_scenario_4_no_feasible_route),
+        ("test_scenario_5_changed_iceberg_prediction_recalculation", test_scenario_5_changed_iceberg_prediction_recalculation),
     ]
 
     print("=" * 60)

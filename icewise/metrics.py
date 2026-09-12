@@ -42,10 +42,12 @@ def calculate_route_metrics(path: List[Tuple[float, float]],
 
     total_distance_km = total_distance_nm * 1.852
 
-    # Estimated transit time and fuel burn (tons)
+    # Estimated transit time, fuel burn (tons), and estimated fuel cost
     estimated_time_hours = cumulative_time_hrs
     transit_days = estimated_time_hours / 24.0
     estimated_fuel_tons = transit_days * vessel.fuel_consumption_rate_tons_per_day
+    # Benchmark MGO (Marine Gas Oil) price ~$850 / Metric Ton
+    estimated_fuel_cost_usd = estimated_fuel_tons * 850.0
 
     # Risk statistics along path
     path_risks = [risk_engine.calculate_total_risk(lat, lon) for lat, lon in path]
@@ -58,6 +60,7 @@ def calculate_route_metrics(path: List[Tuple[float, float]],
         total_distance_km=total_distance_km,
         estimated_time_hours=estimated_time_hours,
         estimated_fuel_tons=estimated_fuel_tons,
+        estimated_fuel_cost_usd=estimated_fuel_cost_usd,
         mean_risk_score=mean_risk,
         max_risk_score=max_risk,
         safety_index=safety_index,

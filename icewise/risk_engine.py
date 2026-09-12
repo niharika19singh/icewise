@@ -92,12 +92,24 @@ class ProbabilisticRiskEngine:
         if not self.environmental_data or not self.environmental_data.ice_concentration_map:
             return self.environmental_data.default_ice_concentration if self.environmental_data else 0.05
 
-        # Nearest neighbor lookup on grid
+        # 1. Direct or rounded key lookup
         grid_key = (round(lat, 2), round(lon, 2))
         if grid_key in self.environmental_data.ice_concentration_map:
             return self.environmental_data.ice_concentration_map[grid_key]
 
-        # Fallback to default
+        # 2. Nearest neighbor lookup within 0.2° coordinate radius fallback
+        best_dist_sq = 0.04  # 0.2° squared radius
+        best_val = None
+        for (k_lat, k_lon), conc in self.environmental_data.ice_concentration_map.items():
+            dist_sq = (lat - k_lat) ** 2 + (lon - k_lon) ** 2
+            if dist_sq < best_dist_sq:
+                best_dist_sq = dist_sq
+                best_val = conc
+
+        if best_val is not None:
+            return best_val
+
+        # Fallback to default concentration
         return self.environmental_data.default_ice_concentration
 
     def calculate_total_risk(self, lat: float, lon: float) -> float:
