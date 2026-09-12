@@ -69,6 +69,36 @@ class IcebergPrediction:
             "size_category": self.size_category.value if isinstance(self.size_category, Enum) else self.size_category,
         }
 
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "IcebergPrediction":
+        curr_pos = Waypoint.from_dict(data["current_position"]) if isinstance(data["current_position"], dict) else data["current_position"]
+        pred_positions = [Waypoint.from_dict(p) if isinstance(p, dict) else p for p in data.get("predicted_positions", [])]
+        size_cat = data.get("size_category", IcebergSizeCategory.MEDIUM)
+        if isinstance(size_cat, str):
+            try:
+                size_cat = IcebergSizeCategory(size_cat)
+            except ValueError:
+                # Match partial string if needed
+                matched = False
+                for cat in IcebergSizeCategory:
+                    if cat.value == size_cat or cat.name == size_cat:
+                        size_cat = cat
+                        matched = True
+                        break
+                if not matched:
+                    size_cat = IcebergSizeCategory.MEDIUM
+
+        return cls(
+            iceberg_id=data["iceberg_id"],
+            current_position=curr_pos,
+            predicted_positions=pred_positions,
+            spatial_uncertainty_km=float(data["spatial_uncertainty_km"]),
+            confidence_score=float(data["confidence_score"]),
+            drift_velocity_knots=float(data.get("drift_velocity_knots", 0.0)),
+            drift_bearing_deg=float(data.get("drift_bearing_deg", 0.0)),
+            size_category=size_cat,
+        )
+
 
 @dataclass
 class EnvironmentalData:
@@ -77,6 +107,31 @@ class EnvironmentalData:
     ice_concentration_map: Dict[Tuple[float, float], float] = field(default_factory=dict)
     default_ice_concentration: float = 0.05
     weather_risk_factor: float = 1.0  # 1.0 = normal/calm sea state, >1.0 = storm/poor visibility penalty
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "ice_concentration_map": {f"{k[0]},{k[1]}": v for k, v in self.ice_concentration_map.items()},
+            "default_ice_concentration": self.default_ice_concentration,
+            "weather_risk_factor": self.weather_risk_factor,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "EnvironmentalData":
+        ice_map = {}
+        raw_map = data.get("ice_concentration_map", {})
+        for k, v in raw_map.items():
+            if isinstance(k, str):
+                parts = [float(p) for p in k.strip("()[] ").split(",")]
+                key_tuple = (parts[0], parts[1])
+            else:
+                key_tuple = (float(k[0]), float(k[1]))
+            ice_map[key_tuple] = float(v)
+
+        return cls(
+            ice_concentration_map=ice_map,
+            default_ice_concentration=float(data.get("default_ice_concentration", 0.05)),
+            weather_risk_factor=float(data.get("weather_risk_factor", 1.0)),
+        )
 
 
 @dataclass
@@ -91,6 +146,36 @@ class VesselProfile:
     risk_tolerance_factor: float = 2.5  # Weight factor α for risk in path cost function (higher = safer)
     max_risk_threshold: float = 0.70  # Hard risk limit (0.0 to 1.0); cells above this are impassable
     ice_class: str = "POLAR_CLASS_6"  # Polar Class designation
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "vessel_id": self.vessel_id,
+            "vessel_name": self.vessel_name,
+            "start_point": self.start_point.to_dict(),
+            "destination": self.destination.to_dict(),
+            "cruise_speed_knots": self.cruise_speed_knots,
+            "fuel_consumption_rate_tons_per_day": self.fuel_consumption_rate_tons_per_day,
+            "risk_tolerance_factor": self.risk_tolerance_factor,
+            "max_risk_threshold": self.max_risk_threshold,
+            "ice_class": self.ice_class,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "VesselProfile":
+        start_pt = Waypoint.from_dict(data["start_point"]) if isinstance(data["start_point"], dict) else data["start_point"]
+        dest_pt = Waypoint.from_dict(data["destination"]) if isinstance(data["destination"], dict) else data["destination"]
+
+        return cls(
+            vessel_id=data["vessel_id"],
+            vessel_name=data.get("vessel_name", data["vessel_id"]),
+            start_point=start_pt,
+            destination=dest_pt,
+            cruise_speed_knots=float(data.get("cruise_speed_knots", 12.0)),
+            fuel_consumption_rate_tons_per_day=float(data.get("fuel_consumption_rate_tons_per_day", 15.0)),
+            risk_tolerance_factor=float(data.get("risk_tolerance_factor", 2.5)),
+            max_risk_threshold=float(data.get("max_risk_threshold", 0.70)),
+            ice_class=data.get("ice_class", "POLAR_CLASS_6"),
+        )
 
 
 @dataclass
