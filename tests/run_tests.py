@@ -52,6 +52,12 @@ from tests.test_tanusha_alignment import (
     test_tanusha_missing_optional_fields,
     test_tanusha_json_to_risk_engine_to_route_json,
 )
+from tests.test_edge_cases import (
+    test_edge_case_invalid_coordinates,
+    test_edge_case_empty_predictions,
+    test_edge_case_blocked_destination,
+    test_edge_case_no_feasible_route_wall,
+)
 
 
 def run_all_tests():
@@ -82,6 +88,10 @@ def run_all_tests():
         ("test_tanusha_trajectory_objects_schema_parsing", test_tanusha_trajectory_objects_schema_parsing),
         ("test_tanusha_missing_optional_fields", test_tanusha_missing_optional_fields),
         ("test_tanusha_json_to_risk_engine_to_route_json", test_tanusha_json_to_risk_engine_to_route_json),
+        ("test_edge_case_invalid_coordinates", test_edge_case_invalid_coordinates),
+        ("test_edge_case_empty_predictions", test_edge_case_empty_predictions),
+        ("test_edge_case_blocked_destination", test_edge_case_blocked_destination),
+        ("test_edge_case_no_feasible_route_wall", test_edge_case_no_feasible_route_wall),
     ]
 
     print("=" * 60)

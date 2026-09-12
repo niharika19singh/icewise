@@ -62,20 +62,16 @@ class NavigationEngine:
         self.current_route_result: Optional[NavigationRouteResult] = None
 
     def _init_bounds(self) -> None:
-        """Determines grid bounding box covering start, destination, and icebergs with safety margin."""
-        all_lats = [self.vessel.start_point.lat, self.vessel.destination.lat]
-        all_lons = [self.vessel.start_point.lon, self.vessel.destination.lon]
+        """Determines grid bounding box covering vessel start and destination with safety margin."""
+        vessel_lats = [self.vessel.start_point.lat, self.vessel.destination.lat]
+        vessel_lons = [self.vessel.start_point.lon, self.vessel.destination.lon]
 
-        for berg in self.iceberg_predictions:
-            all_lats.append(berg.current_position.lat)
-            all_lons.append(berg.current_position.lon)
-
-        # 0.8° (~90 km) safety buffer around workspace boundaries
-        buffer = 0.8
-        self.lat_min = min(all_lats) - buffer
-        self.lat_max = max(all_lats) + buffer
-        self.lon_min = min(all_lons) - buffer
-        self.lon_max = max(all_lons) + buffer
+        # 1.0° (~111 km) safety buffer around vessel journey domain
+        buffer = 1.0
+        self.lat_min = min(vessel_lats) - buffer
+        self.lat_max = max(vessel_lats) + buffer
+        self.lon_min = min(vessel_lons) - buffer
+        self.lon_max = max(vessel_lons) + buffer
 
     def compute_route(self, algorithm: str = "A*", recalculated: bool = False) -> NavigationRouteResult:
         """
