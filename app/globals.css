@@ -1,26 +1,30 @@
 @import "tailwindcss";
 
+@theme {
+  /* Antarctic / deep ocean palette */
+  --color-abyss: #05080a;
+  --color-abyss-raised: #0a1014;
+  --color-ocean: #0d1b22;
+  --color-ice: #8fd9e0;
+  --color-ice-bright: #c3f2f4;
+  --color-frost: #edf2f2;
+  --color-mist: #7c8b90;
+  --color-vessel: #d99a5b;
+  --color-line: rgba(143, 217, 224, 0.14);
+
+  --font-display: var(--font-space-grotesk);
+  --font-body: var(--font-inter);
+  --font-mono: var(--font-plex-mono);
+
+  --tracking-mission: 0.24em;
+  --tracking-mission-wide: 0.32em;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-abyss);
+  color: var(--color-frost);
 }
