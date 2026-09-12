@@ -52,12 +52,44 @@ class ProbabilisticRiskEngine:
         self.environmental_data = environmental_data or EnvironmentalData()
         self.sea_ice_risk_weight = sea_ice_risk_weight
 
-    def calculate_iceberg_collision_risk(self, lat: float, lon: float) -> float:
+    def _interpolate_position_at_time(self, berg: IcebergPrediction, t_hours: float) -> Waypoint:
+        """
+        Interpolates predicted iceberg position at time t_hours along forecast trajectory points.
+        """
+        positions = [berg.current_position] + berg.predicted_positions
+        if not positions:
+            return berg.current_position
+
+        if t_hours <= positions[0].time_offset_hours:
+            return positions[0]
+        if t_hours >= positions[-1].time_offset_hours:
+            return positions[-1]
+
+        for i in range(len(positions) - 1):
+            p1 = positions[i]
+            p2 = positions[i + 1]
+            if p1.time_offset_hours <= t_hours <= p2.time_offset_hours:
+                dt = p2.time_offset_hours - p1.time_offset_hours
+                if dt <= 1e-6:
+                    return p1
+                fraction = (t_hours - p1.time_offset_hours) / dt
+                interp_lat = p1.lat + fraction * (p2.lat - p1.lat)
+                interp_lon = p1.lon + fraction * (p2.lon - p1.lon)
+                return Waypoint(lat=interp_lat, lon=interp_lon, time_offset_hours=t_hours)
+
+        return positions[-1]
+
+    def calculate_iceberg_collision_risk(self,
+                                         lat: float,
+                                         lon: float,
+                                         time_offset_hours: Optional[float] = None) -> float:
         """
         Calculates the combined spatial probability of iceberg collision at (lat, lon).
-        Uses a Gaussian probability density spread scaled by spatial uncertainty σ and model confidence:
+        Uses Gaussian probability density spread scaled by spatial uncertainty σ and model confidence:
         P_i(x,y) = confidence * exp(-d^2 / (2 * σ^2))
-        Evaluates risk across both current and predicted future iceberg trajectory points.
+
+        If time_offset_hours is provided, evaluates iceberg position and uncertainty at that specific future time.
+        Otherwise, evaluates the spatial risk envelope over all forecast positions.
         """
         if not self.iceberg_predictions:
             return 0.0
@@ -65,21 +97,26 @@ class ProbabilisticRiskEngine:
         non_collision_prob = 1.0  # Product of (1 - P_i) for independent risk combination
 
         for berg in self.iceberg_predictions:
-            sigma = max(0.5, berg.spatial_uncertainty_km)  # Minimum 0.5 km radius buffer
             confidence = max(0.1, min(1.0, berg.confidence_score))
 
-            # Evaluate distance to current and all forecast positions
-            all_positions = [berg.current_position] + berg.predicted_positions
-            max_berg_risk = 0.0
-
-            for pos in all_positions:
+            if time_offset_hours is not None:
+                # Time-aware evaluation: position & expanding uncertainty σ(t) = σ_0 + 0.05*t
+                pos = self._interpolate_position_at_time(berg, time_offset_hours)
+                sigma = max(0.5, berg.spatial_uncertainty_km + 0.05 * time_offset_hours)
                 dist_km = haversine_distance_km(lat, lon, pos.lat, pos.lon)
-                # Gaussian decay based on uncertainty sigma
-                risk_component = confidence * math.exp(-(dist_km ** 2) / (2.0 * (sigma ** 2)))
-                if risk_component > max_berg_risk:
-                    max_berg_risk = risk_component
+                max_berg_risk = confidence * math.exp(-(dist_km ** 2) / (2.0 * (sigma ** 2)))
+            else:
+                # Spatial risk envelope across all forecast positions
+                sigma = max(0.5, berg.spatial_uncertainty_km)
+                all_positions = [berg.current_position] + berg.predicted_positions
+                max_berg_risk = 0.0
 
-            # Combine risk using independent union formula: 1 - (1 - P1)(1 - P2)...
+                for pos in all_positions:
+                    dist_km = haversine_distance_km(lat, lon, pos.lat, pos.lon)
+                    risk_component = confidence * math.exp(-(dist_km ** 2) / (2.0 * (sigma ** 2)))
+                    if risk_component > max_berg_risk:
+                        max_berg_risk = risk_component
+
             non_collision_prob *= (1.0 - max_berg_risk)
 
         combined_iceberg_risk = 1.0 - non_collision_prob
@@ -112,12 +149,15 @@ class ProbabilisticRiskEngine:
         # Fallback to default concentration
         return self.environmental_data.default_ice_concentration
 
-    def calculate_total_risk(self, lat: float, lon: float) -> float:
+    def calculate_total_risk(self,
+                             lat: float,
+                             lon: float,
+                             time_offset_hours: Optional[float] = None) -> float:
         """
-        Calculates the total navigation risk score R(lat, lon) in range [0.0, 1.0].
+        Calculates the total navigation risk score R(lat, lon, t) in range [0.0, 1.0].
         Combines iceberg collision probability density and sea ice concentration risk.
         """
-        r_berg = self.calculate_iceberg_collision_risk(lat, lon)
+        r_berg = self.calculate_iceberg_collision_risk(lat, lon, time_offset_hours)
         r_ice = self.get_sea_ice_concentration(lat, lon)
         weather_factor = self.environmental_data.weather_risk_factor if self.environmental_data else 1.0
 

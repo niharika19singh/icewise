@@ -41,6 +41,11 @@ from tests.test_audit_scenarios import (
     test_scenario_4_no_feasible_route,
     test_scenario_5_changed_iceberg_prediction_recalculation,
 )
+from tests.test_focused_risk_review import (
+    test_increasing_uncertainty_expands_risk_area,
+    test_moving_iceberg_onto_route_increases_route_risk,
+    test_lower_risk_alternative_selected_over_shorter_high_risk_route,
+)
 
 
 def run_all_tests():
@@ -64,6 +69,9 @@ def run_all_tests():
         ("test_scenario_3_high_risk_region_avoidance", test_scenario_3_high_risk_region_avoidance),
         ("test_scenario_4_no_feasible_route", test_scenario_4_no_feasible_route),
         ("test_scenario_5_changed_iceberg_prediction_recalculation", test_scenario_5_changed_iceberg_prediction_recalculation),
+        ("test_increasing_uncertainty_expands_risk_area", test_increasing_uncertainty_expands_risk_area),
+        ("test_moving_iceberg_onto_route_increases_route_risk", test_moving_iceberg_onto_route_increases_route_risk),
+        ("test_lower_risk_alternative_selected_over_shorter_high_risk_route", test_lower_risk_alternative_selected_over_shorter_high_risk_route),
     ]
 
     print("=" * 60)
