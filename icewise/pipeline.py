@@ -154,6 +154,9 @@ class NavigationEngine:
         return self.compute_route(algorithm=algorithm, recalculated=True)
 
 
+from icewise.adapters import IcebergPredictionAdapter
+
+
 def run_navigation_pipeline_from_dict(
     vessel_dict: Dict[str, Any],
     iceberg_predictions_dicts: List[Dict[str, Any]],
@@ -163,11 +166,11 @@ def run_navigation_pipeline_from_dict(
 ) -> Dict[str, Any]:
     """
     Convenience helper for REST APIs or cross-module integration.
-    Takes raw JSON-serializable dictionaries for vessel, iceberg predictions, and environment,
-    runs the risk assessment and pathfinder, and returns a JSON-serializable dict output.
+    Takes raw JSON-serializable dictionaries for vessel, iceberg predictions (via Tanusha Adapter),
+    and environment, runs the risk assessment and pathfinder, and returns a JSON-serializable dict output.
     """
     vessel = VesselProfile.from_dict(vessel_dict)
-    iceberg_preds = [IcebergPrediction.from_dict(d) for d in iceberg_predictions_dicts]
+    iceberg_preds = IcebergPredictionAdapter.from_tanusha_json_list(iceberg_predictions_dicts)
     env_data = EnvironmentalData.from_dict(environmental_dict) if environmental_dict else None
 
     engine = NavigationEngine(

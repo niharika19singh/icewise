@@ -46,6 +46,12 @@ from tests.test_focused_risk_review import (
     test_moving_iceberg_onto_route_increases_route_risk,
     test_lower_risk_alternative_selected_over_shorter_high_risk_route,
 )
+from tests.test_tanusha_alignment import (
+    test_tanusha_parallel_arrays_schema_parsing,
+    test_tanusha_trajectory_objects_schema_parsing,
+    test_tanusha_missing_optional_fields,
+    test_tanusha_json_to_risk_engine_to_route_json,
+)
 
 
 def run_all_tests():
@@ -72,6 +78,10 @@ def run_all_tests():
         ("test_increasing_uncertainty_expands_risk_area", test_increasing_uncertainty_expands_risk_area),
         ("test_moving_iceberg_onto_route_increases_route_risk", test_moving_iceberg_onto_route_increases_route_risk),
         ("test_lower_risk_alternative_selected_over_shorter_high_risk_route", test_lower_risk_alternative_selected_over_shorter_high_risk_route),
+        ("test_tanusha_parallel_arrays_schema_parsing", test_tanusha_parallel_arrays_schema_parsing),
+        ("test_tanusha_trajectory_objects_schema_parsing", test_tanusha_trajectory_objects_schema_parsing),
+        ("test_tanusha_missing_optional_fields", test_tanusha_missing_optional_fields),
+        ("test_tanusha_json_to_risk_engine_to_route_json", test_tanusha_json_to_risk_engine_to_route_json),
     ]
 
     print("=" * 60)
