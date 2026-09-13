@@ -73,6 +73,21 @@ class TestRealCSVIntegration(unittest.TestCase):
         self.assertEqual(len(pred.predicted_positions), 2)
         self.assertEqual(pred.spatial_uncertainty_km, 4.5)
 
+    def test_c18b_dataset_parsing_and_rerouting(self):
+        jan_preds = IcebergPredictionAdapter.from_tanusha_csv_file(self.CSV_PATH, target_timestamp="2020-01-02T00:00:00Z")
+        jul_preds = IcebergPredictionAdapter.from_tanusha_csv_file(self.CSV_PATH, target_timestamp="2020-07-20T00:00:00Z")
+
+        c18b_jan = next((p for p in jan_preds if p.iceberg_id == "C18B"), None)
+        c18b_jul = next((p for p in jul_preds if p.iceberg_id == "C18B"), None)
+
+        self.assertIsNotNone(c18b_jan)
+        self.assertIsNotNone(c18b_jul)
+        self.assertEqual(c18b_jan.current_position.lat, -65.4667)
+        self.assertEqual(c18b_jan.current_position.lon, 113.8667)
+        self.assertEqual(c18b_jul.current_position.lat, -64.9346)
+        self.assertEqual(c18b_jul.current_position.lon, 105.1308)
+
 
 if __name__ == "__main__":
     unittest.main()
+
