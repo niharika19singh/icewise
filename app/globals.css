@@ -64,3 +64,20 @@ body {
     opacity: 1;
   }
 }
+
+/* MapLibre control theming — blend the attribution control into the HUD */
+.maplibregl-ctrl-attrib {
+  background: rgba(10, 16, 20, 0.7) !important;
+  color: var(--color-mist) !important;
+  font-family: var(--font-mono) !important;
+  font-size: 9px !important;
+}
+
+.maplibregl-ctrl-attrib a {
+  color: var(--color-ice) !important;
+}
+
+.maplibregl-ctrl-attrib-button {
+  filter: invert(1) brightness(1.6);
+}
+

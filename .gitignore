@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# ICEWISE data files
+data/
+*.nc
+
+# ICEWISE data files
+data/
+*.nc
+
+__pycache__/
+*.pyc
