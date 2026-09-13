@@ -18,6 +18,10 @@
 
   --tracking-mission: 0.24em;
   --tracking-mission-wide: 0.32em;
+
+  --animate-light-pulse: light-pulse 18s ease-in-out infinite;
+  --animate-fog-drift: fog-drift 46s ease-in-out infinite;
+  --animate-vessel-bob: vessel-bob 3.6s ease-in-out infinite;
 }
 
 :root {
@@ -27,4 +31,36 @@
 body {
   background: var(--color-abyss);
   color: var(--color-frost);
+}
+
+@keyframes light-pulse {
+  0%,
+  100% {
+    opacity: 0.08;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@keyframes fog-drift {
+  0%,
+  100% {
+    transform: translateX(-6%);
+  }
+  50% {
+    transform: translateX(6%);
+  }
+}
+
+@keyframes vessel-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.75;
+  }
+  50% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
 }
