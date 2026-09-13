@@ -13,7 +13,7 @@ from icewise.interfaces import (
 from icewise.risk_engine import ProbabilisticRiskEngine
 from icewise.grid_graph import NavigationGridGraph
 from icewise.routing_engine import RouteOptimizer
-from icewise.metrics import calculate_route_metrics
+from icewise.metrics import calculate_route_metrics, calculate_route_comparison
 
 
 class NavigationEngine:
@@ -73,12 +73,44 @@ class NavigationEngine:
         self.lon_min = min(vessel_lons) - buffer
         self.lon_max = max(vessel_lons) + buffer
 
-    def compute_route(self, algorithm: str = "A*", recalculated: bool = False) -> NavigationRouteResult:
+    def compute_baseline_route(self) -> NavigationRouteResult:
+        """
+        Computes the baseline shortest-path navigation route ignoring iceberg risk penalty.
+        Used as the comparative baseline for relative fuel consumption and risk reduction calculations.
+        """
+        orig_risk_tol = self.vessel.risk_tolerance_factor
+        try:
+            self.vessel.risk_tolerance_factor = 0.0
+            optimizer = RouteOptimizer(graph=self.graph, vessel=self.vessel)
+            path_coords, _ = optimizer.find_route_astar()
+            metrics, waypoints = calculate_route_metrics(
+                path=path_coords,
+                vessel=self.vessel,
+                risk_engine=self.risk_engine
+            )
+            return NavigationRouteResult(
+                route_id=f"BASELINE-{uuid.uuid4().hex[:8].upper()}",
+                vessel_id=self.vessel.vessel_id,
+                waypoints=waypoints,
+                metrics=metrics,
+                algorithm_used="Shortest-Path Baseline",
+                notes=["Baseline route representing unconstrained shortest physical path."],
+            )
+        finally:
+            self.vessel.risk_tolerance_factor = orig_risk_tol
+
+    def compute_route(
+        self,
+        algorithm: str = "A*",
+        recalculated: bool = False,
+        include_comparison: bool = True
+    ) -> NavigationRouteResult:
         """
         Computes the optimal risk-aware navigation route using A* or Dijkstra search.
 
         :param algorithm: Pathfinding algorithm ("A*" or "Dijkstra")
         :param recalculated: Flag indicating if this computation is a dynamic recalculation
+        :param include_comparison: If True, computes fuel and risk comparison vs baseline shortest path
         :return: NavigationRouteResult ready for UI display or downstream consumption
         """
         optimizer = RouteOptimizer(graph=self.graph, vessel=self.vessel)
@@ -119,7 +151,16 @@ class NavigationEngine:
             recalculated=recalculated,
             notes=notes,
         )
+
+        if include_comparison:
+            try:
+                baseline_route = self.compute_baseline_route()
+                calculate_route_comparison(self.current_route_result, baseline_route)
+            except Exception:
+                pass
+
         return self.current_route_result
+
 
     def update_predictions_and_recalculate(self,
                                            new_iceberg_predictions: List[IcebergPrediction],

@@ -3,8 +3,8 @@ Voyage Route Metrics Calculator for ICEWISE Navigation Decision Support System.
 Evaluates physical distance, ETA, fuel burn, and risk statistics along calculated routes.
 """
 
-from typing import List, Tuple
-from icewise.interfaces import Waypoint, VesselProfile, RouteMetrics
+from typing import List, Tuple, Dict, Any, Optional
+from icewise.interfaces import Waypoint, VesselProfile, RouteMetrics, NavigationRouteResult
 from icewise.risk_engine import haversine_distance_nm, ProbabilisticRiskEngine
 
 
@@ -68,3 +68,87 @@ def calculate_route_metrics(path: List[Tuple[float, float]],
     )
 
     return metrics, waypoints
+
+
+def calculate_route_comparison(
+    route: NavigationRouteResult,
+    baseline_route: NavigationRouteResult
+) -> Dict[str, Any]:
+    """
+    Calculates fuel consumption and risk reduction comparison metrics between a target route
+    and a baseline route (e.g. shortest / direct path).
+
+    Prototype Assumption:
+    - Fuel consumption is strictly proportional to route transit distance at constant vessel cruising speed.
+    - Fuel burn is NOT inferred from risk score.
+
+    Calculates:
+    - total distance (NM / km)
+    - risk score (mean & max)
+    - estimated travel time (hours)
+    - relative fuel consumption (%)
+    - fuel increase/decrease (%) vs baseline route
+    - risk reduction (%) vs baseline route
+    """
+    route_dist = route.metrics.total_distance_nm
+    base_dist = baseline_route.metrics.total_distance_nm
+
+    route_fuel = route.metrics.estimated_fuel_tons
+    base_fuel = baseline_route.metrics.estimated_fuel_tons
+
+    route_time = route.metrics.estimated_time_hours
+    base_time = baseline_route.metrics.estimated_time_hours
+
+    route_risk = route.metrics.mean_risk_score
+    base_risk = baseline_route.metrics.mean_risk_score
+
+    # Relative fuel consumption (% of baseline)
+    if base_fuel > 0:
+        rel_fuel_pct = (route_fuel / base_fuel) * 100.0
+    elif base_dist > 0:
+        rel_fuel_pct = (route_dist / base_dist) * 100.0
+    else:
+        rel_fuel_pct = 100.0
+
+    fuel_change_pct = rel_fuel_pct - 100.0
+
+    # Risk reduction (% relative to baseline risk)
+    if base_risk > 1e-6:
+        risk_reduction_pct = ((base_risk - route_risk) / base_risk) * 100.0
+    else:
+        risk_reduction_pct = 0.0
+
+    rel_fuel_pct = round(rel_fuel_pct, 2)
+    fuel_change_pct = round(fuel_change_pct, 2)
+    risk_reduction_pct = round(risk_reduction_pct, 2)
+
+    # Attach comparison metrics directly to target route metrics DTO
+    route.metrics.relative_fuel_consumption_pct = rel_fuel_pct
+    route.metrics.fuel_change_pct = fuel_change_pct
+    route.metrics.risk_reduction_pct = risk_reduction_pct
+
+    # Attach baseline metrics for reference if baseline is self
+    if baseline_route.route_id == route.route_id:
+        baseline_route.metrics.relative_fuel_consumption_pct = 100.0
+        baseline_route.metrics.fuel_change_pct = 0.0
+        baseline_route.metrics.risk_reduction_pct = 0.0
+
+    comparison_dict = {
+        "baseline_route_id": baseline_route.route_id,
+        "baseline_distance_nm": round(base_dist, 2),
+        "baseline_estimated_time_hours": round(base_time, 2),
+        "baseline_estimated_fuel_tons": round(base_fuel, 2),
+        "baseline_mean_risk_score": round(base_risk, 4),
+        "route_distance_nm": round(route_dist, 2),
+        "route_estimated_time_hours": round(route_time, 2),
+        "route_estimated_fuel_tons": round(route_fuel, 2),
+        "route_mean_risk_score": round(route_risk, 4),
+        "relative_fuel_consumption_pct": rel_fuel_pct,
+        "fuel_change_pct": fuel_change_pct,
+        "risk_reduction_pct": risk_reduction_pct,
+        "assumption": "Fuel consumption calculated proportional to route transit distance at constant vessel speed."
+    }
+
+    route.comparison = comparison_dict
+    return comparison_dict
+

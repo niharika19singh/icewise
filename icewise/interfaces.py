@@ -190,9 +190,13 @@ class RouteMetrics:
     max_risk_score: float
     safety_index: float  # Normalized score 0-100 (higher is safer)
     waypoint_count: int
+    # Comparison metrics vs baseline route (optional)
+    relative_fuel_consumption_pct: Optional[float] = None  # e.g., 100.0% for baseline, 120.0% for alternative
+    fuel_change_pct: Optional[float] = None               # e.g., 0.0% for baseline, +20.0% for alternative
+    risk_reduction_pct: Optional[float] = None            # e.g., 0.0% for baseline, +45.0% risk reduction
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        d = {
             "total_distance_nm": round(self.total_distance_nm, 2),
             "total_distance_km": round(self.total_distance_km, 2),
             "estimated_time_hours": round(self.estimated_time_hours, 2),
@@ -203,6 +207,13 @@ class RouteMetrics:
             "safety_index": round(self.safety_index, 1),
             "waypoint_count": self.waypoint_count,
         }
+        if self.relative_fuel_consumption_pct is not None:
+            d["relative_fuel_consumption_pct"] = round(self.relative_fuel_consumption_pct, 2)
+        if self.fuel_change_pct is not None:
+            d["fuel_change_pct"] = round(self.fuel_change_pct, 2)
+        if self.risk_reduction_pct is not None:
+            d["risk_reduction_pct"] = round(self.risk_reduction_pct, 2)
+        return d
 
 
 @dataclass
@@ -215,9 +226,10 @@ class NavigationRouteResult:
     algorithm_used: str  # "A*" or "Dijkstra"
     recalculated: bool = False
     notes: List[str] = field(default_factory=list)
+    comparison: Optional[Dict[str, Any]] = None  # Route comparison metrics vs baseline
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        res = {
             "route_id": self.route_id,
             "vessel_id": self.vessel_id,
             "waypoints": [w.to_dict() for w in self.waypoints],
@@ -226,3 +238,7 @@ class NavigationRouteResult:
             "recalculated": self.recalculated,
             "notes": self.notes,
         }
+        if self.comparison is not None:
+            res["comparison"] = self.comparison
+        return res
+

@@ -62,6 +62,7 @@ from tests.test_edge_cases import (
     test_edge_case_no_feasible_route_wall,
 )
 from tests.test_sea_ice_api import test_sea_ice_api_and_loader
+from tests.test_fuel_comparison import test_fuel_comparison_suite
 
 
 def test_real_csv_dataset_parsing():
@@ -113,6 +114,7 @@ def run_all_tests():
         ("test_real_csv_dataset_parsing", test_real_csv_dataset_parsing),
         ("test_hybrid_model_integration", test_hybrid_model_integration),
         ("test_sea_ice_api_and_loader", test_sea_ice_api_and_loader),
+        ("test_fuel_comparison_suite", test_fuel_comparison_suite),
     ]
 
     print("=" * 60)
