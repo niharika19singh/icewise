@@ -39,14 +39,6 @@ export function RoutesIcon({ className }: IconProps) {
   );
 }
 
-export function WeatherIcon({ className }: IconProps) {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M7 17h10a3.5 3.5 0 0 0 0-7 5 5 0 0 0-9.6-1.6A4 4 0 0 0 7 17Z" />
-    </svg>
-  );
-}
-
 export function AnalyticsIcon({ className }: IconProps) {
   return (
     <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -144,14 +136,6 @@ export function EngineIcon({ className }: IconProps) {
       <rect x="4" y="9" width="12" height="8" rx="1.5" />
       <path d="M16 12h2.5L20 10v6l-1.5-2H16" />
       <path d="M7 9V6.5M10.5 9V6.5" />
-    </svg>
-  );
-}
-
-export function ThermometerIcon({ className }: IconProps) {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M12 14.5V5a2 2 0 1 0-4 0v9.5a4 4 0 1 0 4 0Z" />
     </svg>
   );
 }

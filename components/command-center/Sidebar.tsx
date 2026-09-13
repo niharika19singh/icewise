@@ -6,17 +6,16 @@ import {
   IcebergIcon,
   SeaIceIcon,
   RoutesIcon,
-  WeatherIcon,
   AnalyticsIcon,
-  SettingsIcon,
 } from "./icons";
 
+// Weather is out of scope for this prototype — no real weather data/feed
+// exists yet, so it's deliberately not a navigable mode here.
 const navItems = [
   { id: "map", label: "Map", icon: MapIcon },
   { id: "icebergs", label: "Icebergs", icon: IcebergIcon },
   { id: "sea-ice", label: "Sea Ice", icon: SeaIceIcon },
   { id: "routes", label: "Routes", icon: RoutesIcon },
-  { id: "weather", label: "Weather", icon: WeatherIcon },
 ];
 
 const navButtonClass =
@@ -58,18 +57,6 @@ export default function Sidebar({
           </Link>
         </li>
       </ul>
-
-      <button
-        type="button"
-        onClick={() => onSelect("settings")}
-        aria-current={active === "settings"}
-        className={`${navButtonClass} ${
-          active === "settings" ? "border-ice bg-ice/10 text-ice" : "border-transparent text-mist hover:text-ice"
-        }`}
-      >
-        <SettingsIcon className="h-4.5 w-4.5" />
-        Settings
-      </button>
     </nav>
   );
 }

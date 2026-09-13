@@ -2,10 +2,12 @@ export default function ToggleSwitch({
   checked,
   onChange,
   label,
+  disabled = false,
 }: {
   checked: boolean;
   onChange: () => void;
   label: string;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -14,7 +16,8 @@ export default function ToggleSwitch({
       aria-checked={checked}
       aria-label={label}
       onClick={onChange}
-      className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors ${
+      disabled={disabled}
+      className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
         checked ? "border-ice/50 bg-ice/25" : "border-frost/15 bg-frost/5"
       }`}
     >

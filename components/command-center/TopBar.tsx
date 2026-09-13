@@ -1,14 +1,29 @@
-import Logo from "@/components/ui/Logo";
-import { ThermometerIcon, EyeIcon } from "./icons";
+"use client";
 
-// Mock status/telemetry values for shell layout only — not live data.
-const mockStatus = {
-  utc: "2026-09-13 14:32:18",
-  temperatureC: -18.4,
-  visibilityKm: 8.2,
-};
+import { useEffect, useState } from "react";
+import Logo from "@/components/ui/Logo";
+
+// Genuine client-side UTC clock — no fabricated environmental data. There is
+// no real Antarctic weather/conditions feed in this prototype, so nothing
+// claiming to be live temperature/visibility belongs here.
+function formatUtc(date: Date): string {
+  return date.toISOString().slice(0, 19).replace("T", " ");
+}
 
 export default function TopBar() {
+  const [utc, setUtc] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Deliberately client-only (not a render-time initializer): rendering
+    // `new Date()` during SSR would bake a build-time timestamp into the
+    // static HTML and mismatch on hydration. One-time init, not a
+    // cascading-render risk.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUtc(formatUtc(new Date()));
+    const interval = setInterval(() => setUtc(formatUtc(new Date())), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <header className="flex h-[72px] shrink-0 items-center justify-between border-b border-line bg-abyss-raised/60 px-6">
       <div className="flex items-center gap-4">
@@ -29,17 +44,7 @@ export default function TopBar() {
           <span aria-hidden className="h-2 w-2 rounded-full bg-ice shadow-[0_0_8px_rgba(143,217,224,0.8)]" />
           <span className="uppercase tracking-mission">System Online</span>
         </span>
-        <span className="hidden md:inline">UTC {mockStatus.utc}</span>
-        <span className="hidden items-center gap-1.5 lg:flex">
-          <ThermometerIcon className="h-3.5 w-3.5 text-ice" />
-          <span className="uppercase tracking-mission text-mist">Conditions</span>
-          <span className="text-frost">{mockStatus.temperatureC.toFixed(1)} °C</span>
-        </span>
-        <span className="hidden items-center gap-1.5 lg:flex">
-          <EyeIcon className="h-3.5 w-3.5 text-ice" />
-          <span className="uppercase tracking-mission text-mist">Visibility</span>
-          <span className="text-frost">{mockStatus.visibilityKm.toFixed(1)} km</span>
-        </span>
+        {utc && <span className="hidden md:inline">UTC {utc}</span>}
       </div>
     </header>
   );

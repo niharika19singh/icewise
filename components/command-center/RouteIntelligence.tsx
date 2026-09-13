@@ -1,4 +1,4 @@
-import type { RouteResponse } from "./types";
+import type { RouteResponse, RouteOption } from "./types";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -27,6 +27,104 @@ function RoutePlanStats({ route }: { route: RouteResponse }) {
       <Stat label="Max Risk" value={`${(route.metrics.max_risk_score * 100).toFixed(2)}%`} />
       <Stat label="Safety Index" value={route.metrics.safety_index.toFixed(1)} />
       <Stat label="Waypoints" value={String(route.metrics.waypoint_count)} />
+    </div>
+  );
+}
+
+// The 3 real route options (backend/routing/main.py -> _build_route_options):
+// same real risk engine / A* search, each computed independently at a
+// different real risk_tolerance_factor. Selecting one highlights its actual
+// waypoint geometry on the map — nothing here is reconstructed client-side.
+function RouteOptionsList({
+  options,
+  selectedId,
+  onSelect,
+}: {
+  options: RouteOption[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  return (
+    <div className="mt-5 border-t border-line/60 pt-4">
+      <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">Route Options</p>
+      <p className="mt-1 font-mono text-[9px] uppercase tracking-mission text-mist/60">
+        Same risk engine, different risk tolerance — select to highlight on map
+      </p>
+      <div className="mt-2 flex flex-col gap-2">
+        {options.map((opt) => {
+          const isSelected = opt.route_id === selectedId;
+          const isCurrentDefault = opt.label === "Balanced";
+          return (
+            <button
+              key={opt.route_id}
+              type="button"
+              onClick={() => onSelect(isSelected ? null : opt.route_id)}
+              className={`rounded border px-3 py-2 text-left transition-colors ${
+                isSelected ? "border-ice bg-ice/10" : "border-line/60 bg-abyss/40 hover:border-ice/40"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-xs uppercase tracking-mission text-frost">
+                  {opt.label}
+                  {isCurrentDefault && <span className="ml-1.5 normal-case text-mist">(current default)</span>}
+                </span>
+                {isSelected && (
+                  <span className="shrink-0 font-mono text-[9px] uppercase tracking-mission text-ice">
+                    Selected
+                  </span>
+                )}
+              </div>
+              <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[10px] text-mist">
+                <span>
+                  Dist <span className="text-frost">{opt.metrics.total_distance_km.toFixed(1)} km</span>
+                </span>
+                <span>
+                  Time <span className="text-frost">{opt.metrics.estimated_time_hours.toFixed(1)} h</span>
+                </span>
+                <span>
+                  Fuel{" "}
+                  <span className="text-frost">
+                    {opt.metrics.estimated_fuel_tons.toFixed(2)} t (${opt.metrics.estimated_fuel_cost_usd.toFixed(0)})
+                  </span>
+                </span>
+                <span>
+                  Mean Risk <span className="text-frost">{(opt.metrics.mean_risk_score * 100).toFixed(2)}%</span>
+                </span>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function formatSignedPct(value: number, decimals = 2): string {
+  const sign = value > 0 ? "+" : value < 0 ? "−" : "±";
+  return `${sign}${Math.abs(value).toFixed(decimals)}%`;
+}
+
+// The adaptive route's own fuel/risk standing against the unconstrained
+// shortest-path baseline the routing engine computes internally
+// (backend/routing/icewise/metrics.py -> calculate_route_comparison) — read
+// directly off the API response, nothing recalculated client-side. Renders
+// nothing until that comparison is actually present.
+function AdaptiveRouteImpact({ route }: { route: RouteResponse }) {
+  const { fuel_change_pct, risk_reduction_pct } = route.metrics;
+  if (fuel_change_pct == null || risk_reduction_pct == null) return null;
+
+  return (
+    <div className="mt-5 border-t border-line/60 pt-4">
+      <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">
+        Adaptive Route Impact
+      </p>
+      <p className="mt-1 font-mono text-[9px] uppercase tracking-mission text-mist/60">
+        Vs. unconstrained shortest-path baseline
+      </p>
+      <div className="mt-2">
+        <Stat label="Fuel vs Baseline" value={formatSignedPct(fuel_change_pct)} />
+        <Stat label="Risk Reduction vs Baseline" value={formatSignedPct(risk_reduction_pct)} />
+      </div>
     </div>
   );
 }
@@ -75,12 +173,16 @@ export default function RouteIntelligence({
   recalculating,
   recalculateError,
   onRecalculate,
+  selectedRouteOptionId,
+  onSelectRouteOption,
 }: {
   route: RouteResponse;
   recalculatedRoute: RouteResponse | null;
   recalculating: boolean;
   recalculateError: string | null;
   onRecalculate: () => void;
+  selectedRouteOptionId: string | null;
+  onSelectRouteOption: (id: string | null) => void;
 }) {
   return (
     <div className="mt-4 flex flex-col">
@@ -88,6 +190,14 @@ export default function RouteIntelligence({
       <div className="mt-2">
         <RoutePlanStats route={route} />
       </div>
+
+      {route.route_options && route.route_options.length > 0 && (
+        <RouteOptionsList
+          options={route.route_options}
+          selectedId={selectedRouteOptionId}
+          onSelect={onSelectRouteOption}
+        />
+      )}
 
       <button
         type="button"
@@ -107,6 +217,8 @@ export default function RouteIntelligence({
               <RoutePlanStats route={recalculatedRoute} />
             </div>
           </div>
+
+          <AdaptiveRouteImpact route={recalculatedRoute} />
 
           <div className="mt-5 border-t border-line/60 pt-4">
             <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">

@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored third-party assets (e.g. maplibre-gl's worker bundle, copied
+    // verbatim into public/ so it can be served same-origin) — not our code.
+    "public/**",
   ]),
 ]);
 

@@ -49,3 +49,28 @@ data/
 
 __pycache__/
 *.pyc
+.pytest_cache/
+.coverage
+*.egg-info/
+
+# Virtual Environment
+venv/
+.venv/
+env/
+ENV/
+
+# Environment variables & secrets
+.env
+.env.*
+*.pem
+*.key
+*.pfx
+*.p12
+credentials.json
+secrets.json
+
+# Scratch & temporary logs
+scratch/
+*.log
+*.tif
+.DS_Store

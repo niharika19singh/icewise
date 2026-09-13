@@ -88,7 +88,6 @@ function IcebergDetail({ iceberg, onBack }: { iceberg: IcebergPrediction; onBack
       <Stat label="Drift Velocity" value={`${iceberg.drift_velocity_knots.toFixed(2)} kn`} />
       <Stat label="Drift Bearing" value={`${iceberg.drift_bearing_deg.toFixed(1)}°`} />
       <Stat label="Size Category" value={iceberg.size_category || "N/A"} />
-      <Stat label="Model / Source" value="N/A" />
 
       {iceberg.predicted_positions.length > 0 && (
         <div className="mt-4">

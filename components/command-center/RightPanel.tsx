@@ -1,7 +1,8 @@
 import LayerControls from "./LayerControls";
 import IcebergIntelligence from "./IcebergIntelligence";
 import RouteIntelligence from "./RouteIntelligence";
-import type { RouteResponse } from "./types";
+import SeaIceIntelligence from "./SeaIceIntelligence";
+import type { RouteResponse, LayerId, LayerVisibility, SeaIceGeoJSON } from "./types";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -23,6 +24,13 @@ export default function RightPanel({
   recalculating,
   recalculateError,
   onRecalculate,
+  layerVisibility,
+  onToggleLayer,
+  seaIce,
+  seaIceLoading,
+  seaIceError,
+  selectedRouteOptionId,
+  onSelectRouteOption,
 }: {
   route: RouteResponse | null;
   routeLoading: boolean;
@@ -34,13 +42,22 @@ export default function RightPanel({
   recalculating: boolean;
   recalculateError: string | null;
   onRecalculate: () => void;
+  layerVisibility: LayerVisibility;
+  onToggleLayer: (id: LayerId) => void;
+  seaIce: SeaIceGeoJSON | null;
+  seaIceLoading: boolean;
+  seaIceError: string | null;
+  selectedRouteOptionId: string | null;
+  onSelectRouteOption: (id: string | null) => void;
 }) {
   const icebergsMode = activeModule === "icebergs";
   const routesMode = activeModule === "routes";
+  const seaIceMode = activeModule === "sea-ice";
 
   let header = "Selected Object";
   if (icebergsMode) header = selectedIcebergId ? `Iceberg ${selectedIcebergId}` : "Iceberg Intelligence";
   else if (routesMode) header = "Route Intelligence";
+  else if (seaIceMode) header = "Sea Ice Intelligence";
   else if (route) header = "Route Overview";
 
   return (
@@ -66,10 +83,14 @@ export default function RightPanel({
               recalculating={recalculating}
               recalculateError={recalculateError}
               onRecalculate={onRecalculate}
+              selectedRouteOptionId={selectedRouteOptionId}
+              onSelectRouteOption={onSelectRouteOption}
             />
           ) : (
             <PlaceholderBody loading={routeLoading} error={routeError} />
           )
+        ) : seaIceMode ? (
+          <SeaIceIntelligence seaIce={seaIce} loading={seaIceLoading} error={seaIceError} />
         ) : route ? (
           <div className="mt-4 flex flex-col">
             <Stat label="Route ID" value={route.route_id} />
@@ -93,7 +114,12 @@ export default function RightPanel({
         )}
       </div>
 
-      <LayerControls />
+      <LayerControls
+        visibility={layerVisibility}
+        onToggle={onToggleLayer}
+        hasAdaptiveRoute={!!recalculatedRoute}
+        hasSeaIce={!!seaIce}
+      />
     </aside>
   );
 }

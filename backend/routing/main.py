@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from icewise.interfaces import VesselProfile  # noqa: E402
 from icewise.adapters import IcebergPredictionAdapter  # noqa: E402
 from icewise.pipeline import NavigationEngine  # noqa: E402
+from icewise.sea_ice_api import router as sea_ice_router  # noqa: E402
 
 CSV_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "prediction", "iceberg_prediction_dataset.csv"
@@ -40,6 +41,11 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
+
+# Real NSIDC sea-ice concentration endpoints (Niharika's sea_ice_api.py),
+# mounted onto this same server so the frontend keeps calling a single
+# origin/port — no separate sea-ice service.
+app.include_router(sea_ice_router)
 
 
 class LatLon(BaseModel):
@@ -75,6 +81,54 @@ def _build_vessel_dict(req: RouteRequest) -> dict:
         "cruise_speed_knots": req.cruise_speed_knots,
         "fuel_consumption_rate_tons_per_day": req.fuel_consumption_rate_tons_per_day,
     }
+
+
+# Real, empirically-validated risk_tolerance_factor values for the route
+# comparison feature: 0.0 mirrors NavigationEngine.compute_baseline_route()'s
+# own hardcoded unconstrained-shortest-path baseline; 2.5 is VesselProfile's
+# own dataclass default (icewise/interfaces.py) — i.e. exactly what the
+# top-level /api/route response above already used before this endpoint
+# existed; 10.0 (4x the default) was empirically validated to produce a
+# genuinely distinct, meaningfully safer path for this real scenario without
+# any change to the cost function, risk engine, or A*/Dijkstra search itself
+# — see the route-options validation run. Each option below is computed by
+# Niharika's existing NavigationEngine.compute_route(), just called again
+# with vessel.risk_tolerance_factor temporarily swapped, exactly like
+# compute_baseline_route() already does internally.
+ROUTE_OPTION_PROFILES = [
+    (0.0, "Baseline / Shortest"),
+    (2.5, "Balanced"),
+    (10.0, "Safety Priority"),
+]
+
+
+def _build_route_options(engine: NavigationEngine, algorithm: str) -> list:
+    """
+    Computes the 3 validated route options on the SAME already-built engine
+    (same grid, same real iceberg/risk field as the primary route above) by
+    varying only vessel.risk_tolerance_factor — no routing-algorithm change.
+    Each is a full, independent NavigationEngine.compute_route() call, so
+    every option's waypoints/metrics are calculated independently. Comparison
+    (vs baseline) is intentionally not attached to these — that concept
+    already belongs to the primary route's own `comparison` field.
+    """
+    original_alpha = engine.vessel.risk_tolerance_factor
+    options = []
+    try:
+        for alpha, label in ROUTE_OPTION_PROFILES:
+            engine.vessel.risk_tolerance_factor = alpha
+            option_result = engine.compute_route(algorithm=algorithm, include_comparison=False)
+            option_dict = option_result.to_dict()
+            options.append({
+                "route_id": option_dict["route_id"],
+                "label": label,
+                "risk_tolerance_factor": alpha,
+                "waypoints": option_dict["waypoints"],
+                "metrics": option_dict["metrics"],
+            })
+    finally:
+        engine.vessel.risk_tolerance_factor = original_alpha
+    return options
 
 
 def _relevant_icebergs(vessel: VesselProfile, iceberg_preds: list) -> list:
@@ -113,6 +167,11 @@ def generate_route(req: RouteRequest):
         # the plain NavigationRouteResult shape.
         response = result.to_dict()
         response["icebergs"] = [p.to_dict() for p in _relevant_icebergs(vessel, iceberg_preds)]
+        # Additive: 3 real, independently-computed route options (see
+        # ROUTE_OPTION_PROFILES/_build_route_options above). Does not alter
+        # anything above — existing route/waypoints/metrics/comparison fields
+        # are untouched.
+        response["route_options"] = _build_route_options(engine, req.algorithm)
         return response
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -6,10 +6,11 @@ import Sidebar from "./Sidebar";
 import AntarcticMap from "./AntarcticMap";
 import BottomBar from "./BottomBar";
 import RightPanel from "./RightPanel";
-import type { RouteResponse } from "./types";
+import type { RouteResponse, LayerId, LayerVisibility, SeaIceGeoJSON } from "./types";
 
 const ROUTE_API_URL = "http://localhost:8000/api/route";
 const RECALCULATE_API_URL = "http://localhost:8000/api/route/recalculate";
+const SEA_ICE_API_URL = "http://localhost:8000/api/sea-ice/geojson";
 
 // Real vessel/route request for the first ICEWISE demo corridor — sent as-is to
 // Niharika's routing/risk engine. No mock/synthetic route data.
@@ -44,6 +45,21 @@ export default function CommandCenter() {
   const [recalculatedRoute, setRecalculatedRoute] = useState<RouteResponse | null>(null);
   const [recalculating, setRecalculating] = useState(false);
   const [recalculateError, setRecalculateError] = useState<string | null>(null);
+  const [selectedRouteOptionId, setSelectedRouteOptionId] = useState<string | null>(null);
+  const [seaIce, setSeaIce] = useState<SeaIceGeoJSON | null>(null);
+  const [seaIceError, setSeaIceError] = useState<string | null>(null);
+  const [seaIceLoading, setSeaIceLoading] = useState(true);
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
+    icebergs: true,
+    trajectories: true,
+    initialRoute: true,
+    adaptiveRoute: true,
+    seaIce: true,
+  });
+
+  const handleToggleLayer = (id: LayerId) => {
+    setLayerVisibility((v) => ({ ...v, [id]: !v[id] }));
+  };
 
   // Switching modules away from Icebergs clears any selection; selecting an
   // iceberg on the map (from any mode) switches into Icebergs mode to show it.
@@ -109,6 +125,34 @@ export default function CommandCenter() {
     };
   }, []);
 
+  // Real NSIDC sea-ice concentration grid (historical, 2020-01-02) — fetched
+  // once from the same routing server. No mock fallback on failure.
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(SEA_ICE_API_URL)
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => null);
+          throw new Error(body?.detail || `Sea-ice API returned ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((data: SeaIceGeoJSON) => {
+        if (!cancelled) setSeaIce(data);
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setSeaIceError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setSeaIceLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-abyss text-frost">
       <TopBar />
@@ -123,8 +167,11 @@ export default function CommandCenter() {
             activeModule={activeModule}
             selectedIcebergId={selectedIcebergId}
             onSelectIceberg={handleSelectIceberg}
+            layerVisibility={layerVisibility}
+            seaIce={seaIce}
+            selectedRouteOptionId={selectedRouteOptionId}
           />
-          <BottomBar />
+          <BottomBar route={route} />
         </div>
 
         <RightPanel
@@ -138,6 +185,13 @@ export default function CommandCenter() {
           recalculating={recalculating}
           recalculateError={recalculateError}
           onRecalculate={handleRecalculate}
+          layerVisibility={layerVisibility}
+          onToggleLayer={handleToggleLayer}
+          seaIce={seaIce}
+          seaIceLoading={seaIceLoading}
+          seaIceError={seaIceError}
+          selectedRouteOptionId={selectedRouteOptionId}
+          onSelectRouteOption={setSelectedRouteOptionId}
         />
       </div>
 
