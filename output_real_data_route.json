@@ -1,0 +1,510 @@
+{
+  "metadata": {
+    "system": "ICEWISE Navigation Decision Support System (SIH26059)",
+    "module": "Niharika Risk & Route Optimization Module",
+    "dataset_source": "iceberg_prediction_dataset.csv",
+    "timestamp": "2026-09-13T06:08:45.976465+00:00",
+    "prototype_notes": [
+      "Constant vessel speed model (12.0 knots)",
+      "Linear fuel burn model (15.0 tons/day @ $850/ton MGO benchmark)",
+      "2D Gaussian spatial uncertainty spread using uncertainty_km",
+      "Linear spatial-temporal trajectory interpolation across forecast hours"
+    ]
+  },
+  "initial_route": {
+    "route_id": "ROUTE-8EE9BD57",
+    "vessel_id": "RV-POLAR-STERN-01",
+    "waypoints": [
+      {
+        "lat": -76.5,
+        "lon": -42.0,
+        "time_offset_hours": 0.0
+      },
+      {
+        "lat": -76.45,
+        "lon": -41.95,
+        "time_offset_hours": 0.26
+      },
+      {
+        "lat": -76.4,
+        "lon": -41.9,
+        "time_offset_hours": 0.51
+      },
+      {
+        "lat": -76.35,
+        "lon": -41.85,
+        "time_offset_hours": 0.77
+      },
+      {
+        "lat": -76.3,
+        "lon": -41.8,
+        "time_offset_hours": 1.03
+      },
+      {
+        "lat": -76.25,
+        "lon": -41.75,
+        "time_offset_hours": 1.29
+      },
+      {
+        "lat": -76.2,
+        "lon": -41.7,
+        "time_offset_hours": 1.54
+      },
+      {
+        "lat": -76.15,
+        "lon": -41.7,
+        "time_offset_hours": 1.79
+      },
+      {
+        "lat": -76.1,
+        "lon": -41.7,
+        "time_offset_hours": 2.04
+      },
+      {
+        "lat": -76.05,
+        "lon": -41.7,
+        "time_offset_hours": 2.29
+      },
+      {
+        "lat": -76.0,
+        "lon": -41.7,
+        "time_offset_hours": 2.54
+      },
+      {
+        "lat": -75.95,
+        "lon": -41.7,
+        "time_offset_hours": 2.79
+      },
+      {
+        "lat": -75.9,
+        "lon": -41.7,
+        "time_offset_hours": 3.04
+      },
+      {
+        "lat": -75.85,
+        "lon": -41.7,
+        "time_offset_hours": 3.29
+      },
+      {
+        "lat": -75.8,
+        "lon": -41.65,
+        "time_offset_hours": 3.55
+      },
+      {
+        "lat": -75.75,
+        "lon": -41.6,
+        "time_offset_hours": 3.81
+      },
+      {
+        "lat": -75.7,
+        "lon": -41.55,
+        "time_offset_hours": 4.07
+      },
+      {
+        "lat": -75.65,
+        "lon": -41.5,
+        "time_offset_hours": 4.32
+      },
+      {
+        "lat": -75.6,
+        "lon": -41.45,
+        "time_offset_hours": 4.58
+      },
+      {
+        "lat": -75.6,
+        "lon": -41.4,
+        "time_offset_hours": 4.64
+      },
+      {
+        "lat": -75.6,
+        "lon": -41.35,
+        "time_offset_hours": 4.71
+      },
+      {
+        "lat": -75.6,
+        "lon": -41.3,
+        "time_offset_hours": 4.77
+      },
+      {
+        "lat": -75.55,
+        "lon": -41.25,
+        "time_offset_hours": 5.03
+      },
+      {
+        "lat": -75.55,
+        "lon": -41.2,
+        "time_offset_hours": 5.09
+      },
+      {
+        "lat": -75.55,
+        "lon": -41.15,
+        "time_offset_hours": 5.15
+      },
+      {
+        "lat": -75.55,
+        "lon": -41.1,
+        "time_offset_hours": 5.21
+      },
+      {
+        "lat": -75.55,
+        "lon": -41.05,
+        "time_offset_hours": 5.28
+      },
+      {
+        "lat": -75.5,
+        "lon": -41.0,
+        "time_offset_hours": 5.53
+      },
+      {
+        "lat": -75.45,
+        "lon": -40.95,
+        "time_offset_hours": 5.79
+      },
+      {
+        "lat": -75.4,
+        "lon": -40.9,
+        "time_offset_hours": 6.05
+      },
+      {
+        "lat": -75.35,
+        "lon": -40.85,
+        "time_offset_hours": 6.31
+      },
+      {
+        "lat": -75.3,
+        "lon": -40.8,
+        "time_offset_hours": 6.57
+      },
+      {
+        "lat": -75.25,
+        "lon": -40.75,
+        "time_offset_hours": 6.82
+      },
+      {
+        "lat": -75.2,
+        "lon": -40.7,
+        "time_offset_hours": 7.08
+      },
+      {
+        "lat": -75.15,
+        "lon": -40.65,
+        "time_offset_hours": 7.34
+      },
+      {
+        "lat": -75.1,
+        "lon": -40.6,
+        "time_offset_hours": 7.6
+      },
+      {
+        "lat": -75.05,
+        "lon": -40.55,
+        "time_offset_hours": 7.86
+      },
+      {
+        "lat": -75.0,
+        "lon": -40.5,
+        "time_offset_hours": 8.12
+      },
+      {
+        "lat": -74.95,
+        "lon": -40.45,
+        "time_offset_hours": 8.37
+      },
+      {
+        "lat": -74.9,
+        "lon": -40.4,
+        "time_offset_hours": 8.63
+      },
+      {
+        "lat": -74.85,
+        "lon": -40.35,
+        "time_offset_hours": 8.89
+      },
+      {
+        "lat": -74.8,
+        "lon": -40.3,
+        "time_offset_hours": 9.15
+      },
+      {
+        "lat": -74.75,
+        "lon": -40.25,
+        "time_offset_hours": 9.41
+      },
+      {
+        "lat": -74.7,
+        "lon": -40.2,
+        "time_offset_hours": 9.67
+      },
+      {
+        "lat": -74.65,
+        "lon": -40.15,
+        "time_offset_hours": 9.93
+      },
+      {
+        "lat": -74.6,
+        "lon": -40.1,
+        "time_offset_hours": 10.18
+      },
+      {
+        "lat": -74.55,
+        "lon": -40.05,
+        "time_offset_hours": 10.44
+      },
+      {
+        "lat": -74.5,
+        "lon": -40.0,
+        "time_offset_hours": 10.7
+      }
+    ],
+    "metrics": {
+      "total_distance_nm": 128.42,
+      "total_distance_km": 237.84,
+      "estimated_time_hours": 10.7,
+      "estimated_fuel_tons": 6.69,
+      "estimated_fuel_cost_usd": 5685.46,
+      "mean_risk_score": 0.0263,
+      "max_risk_score": 0.0489,
+      "safety_index": 97.4,
+      "waypoint_count": 48
+    },
+    "algorithm_used": "A*",
+    "recalculated": false,
+    "notes": [
+      "Algorithm used: A*",
+      "Grid resolution: 0.05\u00b0 (~5.6 km)",
+      "Icebergs evaluated: 37",
+      "Prototype Assumptions: Constant vessel cruising speed; linear fuel burn model; 2D Gaussian drift uncertainty."
+    ]
+  },
+  "recalculated_route": {
+    "route_id": "ROUTE-87093CDC",
+    "vessel_id": "RV-POLAR-STERN-01",
+    "waypoints": [
+      {
+        "lat": -76.5,
+        "lon": -42.0,
+        "time_offset_hours": 0.0
+      },
+      {
+        "lat": -76.45,
+        "lon": -41.95,
+        "time_offset_hours": 0.26
+      },
+      {
+        "lat": -76.4,
+        "lon": -41.9,
+        "time_offset_hours": 0.51
+      },
+      {
+        "lat": -76.35,
+        "lon": -41.85,
+        "time_offset_hours": 0.77
+      },
+      {
+        "lat": -76.3,
+        "lon": -41.8,
+        "time_offset_hours": 1.03
+      },
+      {
+        "lat": -76.25,
+        "lon": -41.75,
+        "time_offset_hours": 1.29
+      },
+      {
+        "lat": -76.2,
+        "lon": -41.7,
+        "time_offset_hours": 1.54
+      },
+      {
+        "lat": -76.15,
+        "lon": -41.65,
+        "time_offset_hours": 1.8
+      },
+      {
+        "lat": -76.1,
+        "lon": -41.6,
+        "time_offset_hours": 2.06
+      },
+      {
+        "lat": -76.05,
+        "lon": -41.55,
+        "time_offset_hours": 2.31
+      },
+      {
+        "lat": -76.0,
+        "lon": -41.5,
+        "time_offset_hours": 2.57
+      },
+      {
+        "lat": -75.95,
+        "lon": -41.45,
+        "time_offset_hours": 2.83
+      },
+      {
+        "lat": -75.9,
+        "lon": -41.4,
+        "time_offset_hours": 3.09
+      },
+      {
+        "lat": -75.85,
+        "lon": -41.35,
+        "time_offset_hours": 3.34
+      },
+      {
+        "lat": -75.8,
+        "lon": -41.3,
+        "time_offset_hours": 3.6
+      },
+      {
+        "lat": -75.75,
+        "lon": -41.25,
+        "time_offset_hours": 3.86
+      },
+      {
+        "lat": -75.7,
+        "lon": -41.2,
+        "time_offset_hours": 4.12
+      },
+      {
+        "lat": -75.65,
+        "lon": -41.15,
+        "time_offset_hours": 4.37
+      },
+      {
+        "lat": -75.6,
+        "lon": -41.1,
+        "time_offset_hours": 4.63
+      },
+      {
+        "lat": -75.55,
+        "lon": -41.05,
+        "time_offset_hours": 4.89
+      },
+      {
+        "lat": -75.5,
+        "lon": -41.0,
+        "time_offset_hours": 5.15
+      },
+      {
+        "lat": -75.45,
+        "lon": -40.95,
+        "time_offset_hours": 5.41
+      },
+      {
+        "lat": -75.4,
+        "lon": -40.9,
+        "time_offset_hours": 5.66
+      },
+      {
+        "lat": -75.35,
+        "lon": -40.85,
+        "time_offset_hours": 5.92
+      },
+      {
+        "lat": -75.3,
+        "lon": -40.8,
+        "time_offset_hours": 6.18
+      },
+      {
+        "lat": -75.25,
+        "lon": -40.75,
+        "time_offset_hours": 6.44
+      },
+      {
+        "lat": -75.2,
+        "lon": -40.7,
+        "time_offset_hours": 6.7
+      },
+      {
+        "lat": -75.15,
+        "lon": -40.65,
+        "time_offset_hours": 6.95
+      },
+      {
+        "lat": -75.1,
+        "lon": -40.6,
+        "time_offset_hours": 7.21
+      },
+      {
+        "lat": -75.05,
+        "lon": -40.55,
+        "time_offset_hours": 7.47
+      },
+      {
+        "lat": -75.0,
+        "lon": -40.5,
+        "time_offset_hours": 7.73
+      },
+      {
+        "lat": -74.95,
+        "lon": -40.45,
+        "time_offset_hours": 7.99
+      },
+      {
+        "lat": -74.9,
+        "lon": -40.4,
+        "time_offset_hours": 8.25
+      },
+      {
+        "lat": -74.85,
+        "lon": -40.35,
+        "time_offset_hours": 8.5
+      },
+      {
+        "lat": -74.8,
+        "lon": -40.3,
+        "time_offset_hours": 8.76
+      },
+      {
+        "lat": -74.75,
+        "lon": -40.25,
+        "time_offset_hours": 9.02
+      },
+      {
+        "lat": -74.7,
+        "lon": -40.2,
+        "time_offset_hours": 9.28
+      },
+      {
+        "lat": -74.65,
+        "lon": -40.15,
+        "time_offset_hours": 9.54
+      },
+      {
+        "lat": -74.6,
+        "lon": -40.1,
+        "time_offset_hours": 9.8
+      },
+      {
+        "lat": -74.55,
+        "lon": -40.05,
+        "time_offset_hours": 10.06
+      },
+      {
+        "lat": -74.5,
+        "lon": -40.0,
+        "time_offset_hours": 10.32
+      }
+    ],
+    "metrics": {
+      "total_distance_nm": 123.79,
+      "total_distance_km": 229.26,
+      "estimated_time_hours": 10.32,
+      "estimated_fuel_tons": 6.45,
+      "estimated_fuel_cost_usd": 5480.4,
+      "mean_risk_score": 0.025,
+      "max_risk_score": 0.025,
+      "safety_index": 97.5,
+      "waypoint_count": 41
+    },
+    "algorithm_used": "A*",
+    "recalculated": true,
+    "notes": [
+      "Algorithm used: A*",
+      "Grid resolution: 0.05\u00b0 (~5.6 km)",
+      "Icebergs evaluated: 31",
+      "Prototype Assumptions: Constant vessel cruising speed; linear fuel burn model; 2D Gaussian drift uncertainty.",
+      "Route dynamically recalculated due to updated iceberg predictions."
+    ]
+  }
+}

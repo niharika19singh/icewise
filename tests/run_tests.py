@@ -10,6 +10,7 @@ import os
 # Add parent directory to python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+import unittest
 from tests.test_interfaces import (
     test_waypoint_serialization,
     test_iceberg_prediction_serialization,
@@ -52,12 +53,20 @@ from tests.test_tanusha_alignment import (
     test_tanusha_missing_optional_fields,
     test_tanusha_json_to_risk_engine_to_route_json,
 )
+from tests.test_real_csv import TestRealCSVIntegration
 from tests.test_edge_cases import (
     test_edge_case_invalid_coordinates,
     test_edge_case_empty_predictions,
     test_edge_case_blocked_destination,
     test_edge_case_no_feasible_route_wall,
 )
+
+
+def test_real_csv_dataset_parsing():
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestRealCSVIntegration)
+    result = unittest.TextTestRunner(stream=sys.stdout, verbosity=0).run(suite)
+    assert result.wasSuccessful(), "Real CSV Integration test failed"
+
 
 
 def run_all_tests():
@@ -92,6 +101,7 @@ def run_all_tests():
         ("test_edge_case_empty_predictions", test_edge_case_empty_predictions),
         ("test_edge_case_blocked_destination", test_edge_case_blocked_destination),
         ("test_edge_case_no_feasible_route_wall", test_edge_case_no_feasible_route_wall),
+        ("test_real_csv_dataset_parsing", test_real_csv_dataset_parsing),
     ]
 
     print("=" * 60)

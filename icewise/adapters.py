@@ -140,6 +140,14 @@ class IcebergPredictionAdapter:
 
                     predicted_waypoints.append(Waypoint(lat=p_lat, lon=p_lon, time_offset_hours=t_offset))
 
+        # Case C: Single-row CSV dict format (predicted_latitude, predicted_longitude, forecast_hours)
+        elif "predicted_latitude" in data and "predicted_longitude" in data:
+            p_lat = normalize_latitude(data["predicted_latitude"])
+            p_lon = normalize_longitude(data["predicted_longitude"])
+            raw_t = data.get("forecast_hours", data.get("prediction_timestamp"))
+            t_offset = parse_iso_or_numeric_time(raw_t, base_time=base_dt)
+            predicted_waypoints.append(Waypoint(lat=p_lat, lon=p_lon, time_offset_hours=t_offset))
+
         # Fallback: single point if no trajectory points provided
         if not predicted_waypoints:
             predicted_waypoints = [curr_waypoint]
@@ -194,3 +202,112 @@ class IcebergPredictionAdapter:
     def from_tanusha_json_list(cls, payload_list: List[Dict[str, Any]]) -> List[IcebergPrediction]:
         """Parses a list of prediction JSON objects from Tanusha's ML module."""
         return [cls.from_tanusha_json(item) for item in payload_list]
+
+    @classmethod
+    def from_tanusha_csv_rows(
+        cls, rows: List[Dict[str, Any]], target_timestamp: Optional[str] = None
+    ) -> List[IcebergPrediction]:
+        """
+        Parses a list of row dictionaries matching Tanusha's CSV structure:
+        `iceberg_id, current_timestamp, current_latitude, current_longitude, prediction_timestamp, forecast_hours, predicted_latitude, predicted_longitude, uncertainty_km, model`
+
+        Groups rows by (iceberg_id, current_timestamp) to form multi-timestep trajectory predictions.
+        If target_timestamp is specified, filters rows matching that current_timestamp.
+        If target_timestamp is None, uses the latest current_timestamp per iceberg_id.
+        """
+        if not rows:
+            return []
+
+        # Filter rows by target_timestamp if specified
+        if target_timestamp:
+            filtered_rows = [
+                r for r in rows if str(r.get("current_timestamp", "")).strip() == target_timestamp.strip()
+            ]
+        else:
+            # Group by iceberg_id and find the latest current_timestamp per iceberg
+            latest_ts_per_iceberg: Dict[str, str] = {}
+            for r in rows:
+                iid = str(r.get("iceberg_id", ""))
+                ts = str(r.get("current_timestamp", ""))
+                if iid not in latest_ts_per_iceberg or ts > latest_ts_per_iceberg[iid]:
+                    latest_ts_per_iceberg[iid] = ts
+
+            filtered_rows = [
+                r for r in rows if str(r.get("current_timestamp", "")) == latest_ts_per_iceberg.get(str(r.get("iceberg_id", "")))
+            ]
+
+        # Group by (iceberg_id, current_timestamp)
+        groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+        for r in filtered_rows:
+            iid = str(r.get("iceberg_id", "ICE-UNKNOWN"))
+            cts = str(r.get("current_timestamp", ""))
+            groups.setdefault((iid, cts), []).append(r)
+
+        predictions: List[IcebergPrediction] = []
+        for (iid, cts), group_rows in groups.items():
+            if not group_rows:
+                continue
+
+            # Sort group_rows by forecast_hours
+            group_rows.sort(key=lambda x: float(x.get("forecast_hours", 0.0)))
+
+            first_row = group_rows[0]
+            curr_lat = normalize_latitude(first_row.get("current_latitude", first_row.get("predicted_latitude", 0.0)))
+            curr_lon = normalize_longitude(first_row.get("current_longitude", first_row.get("predicted_longitude", 0.0)))
+            curr_waypoint = Waypoint(lat=curr_lat, lon=curr_lon, time_offset_hours=0.0)
+
+            predicted_waypoints: List[Waypoint] = []
+            uncertainties: List[float] = []
+
+            base_dt = None
+            if cts:
+                try:
+                    base_dt = datetime.fromisoformat(cts.replace("Z", "+00:00"))
+                except Exception:
+                    base_dt = None
+
+            for r in group_rows:
+                p_lat = normalize_latitude(r.get("predicted_latitude", 0.0))
+                p_lon = normalize_longitude(r.get("predicted_longitude", 0.0))
+
+                raw_fhours = r.get("forecast_hours")
+                if raw_fhours is not None:
+                    t_offset = float(raw_fhours)
+                else:
+                    raw_pt = r.get("prediction_timestamp")
+                    t_offset = parse_iso_or_numeric_time(raw_pt, base_time=base_dt)
+
+                predicted_waypoints.append(Waypoint(lat=p_lat, lon=p_lon, time_offset_hours=t_offset))
+
+                unc = float(r.get("uncertainty_km", 2.5))
+                uncertainties.append(unc)
+
+            spatial_unc = max(uncertainties) if uncertainties else 2.5
+            spatial_unc = max(0.5, float(spatial_unc))
+
+            predictions.append(
+                IcebergPrediction(
+                    iceberg_id=iid,
+                    current_position=curr_waypoint,
+                    predicted_positions=predicted_waypoints,
+                    spatial_uncertainty_km=spatial_unc,
+                    confidence_score=0.90,
+                    drift_velocity_knots=0.0,
+                    drift_bearing_deg=0.0,
+                    size_category=IcebergSizeCategory.MEDIUM,
+                )
+            )
+
+        return predictions
+
+    @classmethod
+    def from_tanusha_csv_file(
+        cls, csv_path: str, target_timestamp: Optional[str] = None
+    ) -> List[IcebergPrediction]:
+        """Reads Tanusha's CSV dataset file and returns standard IcebergPrediction DTOs."""
+        import csv
+        with open(csv_path, mode="r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            rows = [dict(r) for r in reader]
+        return cls.from_tanusha_csv_rows(rows, target_timestamp=target_timestamp)
+

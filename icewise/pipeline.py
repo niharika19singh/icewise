@@ -178,3 +178,34 @@ def run_navigation_pipeline_from_dict(
 
     result = engine.compute_route(algorithm=algorithm)
     return result.to_dict()
+
+
+def run_navigation_pipeline_from_csv_file(
+    vessel_dict: Dict[str, Any],
+    csv_file_path: str,
+    target_timestamp: Optional[str] = None,
+    environmental_dict: Optional[Dict[str, Any]] = None,
+    algorithm: str = "A*",
+    grid_resolution_deg: float = 0.05
+) -> Dict[str, Any]:
+    """
+    Directly consumes Tanusha's real iceberg prediction CSV file (`iceberg_prediction_dataset.csv`),
+    parses it via IcebergPredictionAdapter into trajectory DTOs, executes Niharika's
+    probabilistic risk engine & pathfinder, and returns clean JSON-serializable output for Saiesha.
+    """
+    vessel = VesselProfile.from_dict(vessel_dict)
+    iceberg_preds = IcebergPredictionAdapter.from_tanusha_csv_file(
+        csv_file_path, target_timestamp=target_timestamp
+    )
+    env_data = EnvironmentalData.from_dict(environmental_dict) if environmental_dict else None
+
+    engine = NavigationEngine(
+        vessel=vessel,
+        iceberg_predictions=iceberg_preds,
+        environmental_data=env_data,
+        grid_resolution_deg=grid_resolution_deg
+    )
+
+    result = engine.compute_route(algorithm=algorithm)
+    return result.to_dict()
+
