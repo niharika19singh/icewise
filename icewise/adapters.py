@@ -5,9 +5,11 @@ risk engine domain objects.
 """
 
 from datetime import datetime
+import json
 import math
+import os
 from typing import List, Dict, Any, Optional, Union
-from icewise.interfaces import Waypoint, IcebergPrediction, IcebergSizeCategory
+from icewise.interfaces import Waypoint, IcebergPrediction, IcebergSizeCategory, EnvironmentalData
 
 
 def parse_iso_or_numeric_time(val: Any, base_time: Optional[datetime] = None) -> float:
@@ -310,4 +312,32 @@ class IcebergPredictionAdapter:
             reader = csv.DictReader(f)
             rows = [dict(r) for r in reader]
         return cls.from_tanusha_csv_rows(rows, target_timestamp=target_timestamp)
+
+
+def load_nsidc_sea_ice_data(json_path: Optional[str] = None) -> EnvironmentalData:
+    """
+    Loads real NSIDC daily sea-ice concentration data from JSON file into EnvironmentalData layer.
+    """
+    if json_path is None:
+        json_path = os.path.join(os.path.dirname(__file__), "data", "nsidc_sea_ice_20200102.json")
+
+    if not os.path.exists(json_path):
+        return EnvironmentalData(default_ice_concentration=0.05)
+
+    with open(json_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    ice_map = {}
+    for item in payload.get("data", []):
+        lat = round(float(item["latitude"]), 2)
+        lon = round(float(item["longitude"]), 2)
+        conc = float(item["ice_concentration"])
+        ice_map[(lat, lon)] = conc
+
+    return EnvironmentalData(
+        ice_concentration_map=ice_map,
+        default_ice_concentration=0.05,
+        weather_risk_factor=1.0,
+    )
+
 

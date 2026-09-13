@@ -24,4 +24,5 @@ secrets.json
 # Scratch & temporary logs
 scratch/
 *.log
+*.tif
 .DS_Store
