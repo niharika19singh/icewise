@@ -54,6 +54,7 @@ from tests.test_tanusha_alignment import (
     test_tanusha_json_to_risk_engine_to_route_json,
 )
 from tests.test_real_csv import TestRealCSVIntegration
+from tests.test_hybrid_model_integration import TestHybridModelIntegration
 from tests.test_edge_cases import (
     test_edge_case_invalid_coordinates,
     test_edge_case_empty_predictions,
@@ -66,6 +67,13 @@ def test_real_csv_dataset_parsing():
     suite = unittest.TestLoader().loadTestsFromTestCase(TestRealCSVIntegration)
     result = unittest.TextTestRunner(stream=sys.stdout, verbosity=0).run(suite)
     assert result.wasSuccessful(), "Real CSV Integration test failed"
+
+
+def test_hybrid_model_integration():
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestHybridModelIntegration)
+    result = unittest.TextTestRunner(stream=sys.stdout, verbosity=0).run(suite)
+    assert result.wasSuccessful(), "Hybrid Model Integration test failed"
+
 
 
 
@@ -102,6 +110,7 @@ def run_all_tests():
         ("test_edge_case_blocked_destination", test_edge_case_blocked_destination),
         ("test_edge_case_no_feasible_route_wall", test_edge_case_no_feasible_route_wall),
         ("test_real_csv_dataset_parsing", test_real_csv_dataset_parsing),
+        ("test_hybrid_model_integration", test_hybrid_model_integration),
     ]
 
     print("=" * 60)
