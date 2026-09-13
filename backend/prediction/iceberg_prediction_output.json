@@ -1,0 +1,33 @@
+{
+  "icebergs": [
+    {
+      "iceberg_id": "C18B",
+      "current_state": {
+        "timestamp": "2020-07-20T00:00:00Z",
+        "latitude": -64.9346,
+        "longitude": 105.1308
+      },
+      "predictions": [
+        {
+          "timestamp": "2020-07-21T00:00:00Z",
+          "latitude": -64.935547,
+          "longitude": 104.876933,
+          "uncertainty_km": 4.86
+        },
+        {
+          "timestamp": "2020-07-22T00:00:00Z",
+          "latitude": -64.937664,
+          "longitude": 104.365735,
+          "uncertainty_km": 7.74
+        },
+        {
+          "timestamp": "2020-07-23T00:00:00Z",
+          "latitude": -64.940692,
+          "longitude": 103.610933,
+          "uncertainty_km": 10.53
+        }
+      ],
+      "model": "physics_ml_hybrid"
+    }
+  ]
+}
