@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import { MapLibreMap, Marker, AttributionControl, setWorkerUrl, type StyleSpecification, type GeoJSONSource } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
 import { buildGraticule } from "./graticule";
 import { PlusIcon, MinusIcon, LocateIcon, CompassIcon } from "./icons";
 import MapLegend from "./MapLegend";

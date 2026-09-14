@@ -1,0 +1,39 @@
+{
+  "metadata": {
+    "trained_timestamp": "2026-09-13T13:48:58.997019",
+    "train_samples": 10470,
+    "test_samples": 1564
+  },
+  "physics_coefficients": {
+    "vx_from_wind": [
+      0.03632076538527317,
+      -0.022431957550054303
+    ],
+    "vy_from_wind": [
+      -0.013273893700619682,
+      0.036579224469947456
+    ]
+  },
+  "test_metrics": {
+    "physics": {
+      "velocity_rmse_kmh": 3.547646750425213,
+      "velocity_mae_kmh": 1.465923087476696,
+      "position_error_24h_km": 9.04463998805261
+    },
+    "pure_ml": {
+      "velocity_rmse_kmh": 2.956058895523971,
+      "velocity_mae_kmh": 1.3579740941021494,
+      "position_error_24h_km": 19.05498238968408
+    },
+    "full_hybrid": {
+      "velocity_rmse_kmh": 2.9743479706407885,
+      "velocity_mae_kmh": 1.3736206068732666,
+      "position_error_24h_km": 19.96744377108426
+    },
+    "regularized_hybrid": {
+      "velocity_rmse_kmh": 3.417146116374824,
+      "velocity_mae_kmh": 1.4228578638861182,
+      "position_error_24h_km": 9.44017587866025
+    }
+  }
+}

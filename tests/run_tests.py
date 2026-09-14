@@ -63,6 +63,7 @@ from tests.test_edge_cases import (
 )
 from tests.test_sea_ice_api import test_sea_ice_api_and_loader
 from tests.test_fuel_comparison import test_fuel_comparison_suite
+from tests.test_e2e_integration import test_e2e_integration_suite
 
 
 def test_real_csv_dataset_parsing():
@@ -115,6 +116,7 @@ def run_all_tests():
         ("test_hybrid_model_integration", test_hybrid_model_integration),
         ("test_sea_ice_api_and_loader", test_sea_ice_api_and_loader),
         ("test_fuel_comparison_suite", test_fuel_comparison_suite),
+        ("test_e2e_integration_suite", test_e2e_integration_suite),
     ]
 
     print("=" * 60)

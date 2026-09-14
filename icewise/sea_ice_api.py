@@ -1,28 +1,16 @@
 """
-FastAPI Endpoints for Real NSIDC Sea-Ice Concentration Data.
+FastAPI router and application for Real NSIDC Sea-Ice Concentration Data.
 Exposes sea-ice grid points in standard JSON and GeoJSON formats.
+Can be mounted into backend/routing/main.py or run standalone.
 """
 
 import os
 import json
 from typing import Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(
-    title="ICEWISE Sea-Ice Data API",
-    description="Real NSIDC NOAA Sea Ice Index v4.0 (G02135) dataset for Weddell Sea corridor (2020-01-02)",
-    version="1.0.0"
-)
-
-# Enable CORS for frontend integration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+router = APIRouter()
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "data", "nsidc_sea_ice_20200102.json")
 
@@ -34,7 +22,7 @@ def _get_raw_data() -> Dict[str, Any]:
         return json.load(f)
 
 
-@app.get("/api/sea-ice/concentration")
+@router.get("/api/sea-ice/concentration")
 def get_sea_ice_concentration(
     min_lat: Optional[float] = Query(None, description="Optional minimum latitude filter"),
     max_lat: Optional[float] = Query(None, description="Optional maximum latitude filter"),
@@ -71,7 +59,7 @@ def get_sea_ice_concentration(
     return payload
 
 
-@app.get("/api/sea-ice/geojson")
+@router.get("/api/sea-ice/geojson")
 def get_sea_ice_geojson(
     min_lat: Optional[float] = Query(None, description="Optional minimum latitude filter"),
     max_lat: Optional[float] = Query(None, description="Optional maximum latitude filter"),
@@ -122,3 +110,21 @@ def get_sea_ice_geojson(
         },
         "features": features
     }
+
+
+# Standalone app instance
+app = FastAPI(
+    title="ICEWISE Sea-Ice Data API",
+    description="Real NSIDC NOAA Sea Ice Index v4.0 (G02135) dataset for Weddell Sea corridor (2020-01-02)",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(router)

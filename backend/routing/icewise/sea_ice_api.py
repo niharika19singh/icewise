@@ -1,14 +1,14 @@
 """
-FastAPI router for Real NSIDC Sea-Ice Concentration Data.
+FastAPI router and application for Real NSIDC Sea-Ice Concentration Data.
 Exposes sea-ice grid points in standard JSON and GeoJSON formats.
-Mounted into the existing ICEWISE Routing API (backend/routing/main.py) —
-not a standalone app, so it shares that server's host/port/CORS config.
+Can be mounted into backend/routing/main.py or run standalone.
 """
 
 import os
 import json
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 router = APIRouter()
 
@@ -110,3 +110,21 @@ def get_sea_ice_geojson(
         },
         "features": features
     }
+
+
+# Standalone app instance
+app = FastAPI(
+    title="ICEWISE Sea-Ice Data API",
+    description="Real NSIDC NOAA Sea Ice Index v4.0 (G02135) dataset for Weddell Sea corridor (2020-01-02)",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(router)

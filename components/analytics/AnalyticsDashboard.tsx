@@ -10,9 +10,10 @@ import MissionOutcome from "./MissionOutcome";
 import AnalyticsFooter from "./AnalyticsFooter";
 import type { RouteResponse, C18BValidation } from "@/components/command-center/types";
 
-const ROUTE_API_URL = "http://localhost:8000/api/route";
-const RECALCULATE_API_URL = "http://localhost:8000/api/route/recalculate";
-const VALIDATION_API_URL = "http://localhost:8000/api/analytics/c18b-validation";
+const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const ROUTE_API_URL = `${BASE_API_URL}/api/route`;
+const RECALCULATE_API_URL = `${BASE_API_URL}/api/route/recalculate`;
+const VALIDATION_API_URL = `${BASE_API_URL}/api/analytics/c18b-validation`;
 
 // Same real vessel/corridor request used by the Command Center — reused
 // verbatim, not a second invented scenario.

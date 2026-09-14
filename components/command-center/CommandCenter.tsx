@@ -8,9 +8,10 @@ import BottomBar from "./BottomBar";
 import RightPanel from "./RightPanel";
 import type { RouteResponse, LayerId, LayerVisibility, SeaIceGeoJSON } from "./types";
 
-const ROUTE_API_URL = "http://localhost:8000/api/route";
-const RECALCULATE_API_URL = "http://localhost:8000/api/route/recalculate";
-const SEA_ICE_API_URL = "http://localhost:8000/api/sea-ice/geojson";
+const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const ROUTE_API_URL = `${BASE_API_URL}/api/route`;
+const RECALCULATE_API_URL = `${BASE_API_URL}/api/route/recalculate`;
+const SEA_ICE_API_URL = `${BASE_API_URL}/api/sea-ice/geojson`;
 
 // Real vessel/route request for the first ICEWISE demo corridor — sent as-is to
 // Niharika's routing/risk engine. No mock/synthetic route data.

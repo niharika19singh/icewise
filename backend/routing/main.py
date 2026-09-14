@@ -33,12 +33,16 @@ C18B_VALIDATION_CSV_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "..", "prediction", "c18b_hybrid_results.csv"
 )
 
+cors_env = os.getenv("CORS_ORIGINS", "*")
+cors_origins = [origin.strip() for origin in cors_env.split(",") if origin.strip()]
+
 app = FastAPI(title="ICEWISE Routing API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_methods=["GET", "POST"],
+    allow_origins=cors_origins if cors_origins != ["*"] else ["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
