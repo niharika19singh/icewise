@@ -52,6 +52,16 @@ app.add_middleware(
 app.include_router(sea_ice_router)
 
 
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "icewise-backend", "docs": "/docs"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "service": "icewise-backend"}
+
+
 class LatLon(BaseModel):
     lat: float
     lon: float
