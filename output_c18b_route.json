@@ -1,0 +1,1283 @@
+{
+  "metadata": {
+    "system": "ICEWISE Navigation Decision Support System (SIH26059)",
+    "module": "Niharika Risk & Route Optimization Module",
+    "scenario": "C18B East Antarctic Coastal Corridor",
+    "dataset_source": "iceberg_prediction_dataset.csv",
+    "timestamp": "2026-09-13T06:14:02.487874+00:00",
+    "validation": {
+      "ground_truth_errors_km": {
+        "24h": 0.57,
+        "48h": 1.17,
+        "72h": 1.334
+      }
+    },
+    "prototype_notes": [
+      "Constant vessel speed model (12.0 knots)",
+      "Linear fuel burn model (15.0 tons/day @ $850/ton MGO benchmark)",
+      "2D Gaussian spatial uncertainty spread using uncertainty_km",
+      "Linear spatial-temporal trajectory interpolation across forecast hours"
+    ]
+  },
+  "initial_route": {
+    "route_id": "ROUTE-8F034192",
+    "vessel_id": "RV-AURORA-AUSTRALIS",
+    "waypoints": [
+      {
+        "lat": -65.0,
+        "lon": 108.0,
+        "time_offset_hours": 0.0
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.95,
+        "time_offset_hours": 0.11
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.9,
+        "time_offset_hours": 0.21
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.85,
+        "time_offset_hours": 0.32
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.8,
+        "time_offset_hours": 0.42
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.75,
+        "time_offset_hours": 0.53
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.7,
+        "time_offset_hours": 0.63
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.65,
+        "time_offset_hours": 0.74
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.6,
+        "time_offset_hours": 0.85
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.55,
+        "time_offset_hours": 0.95
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.5,
+        "time_offset_hours": 1.06
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.45,
+        "time_offset_hours": 1.16
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.4,
+        "time_offset_hours": 1.27
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.35,
+        "time_offset_hours": 1.37
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.3,
+        "time_offset_hours": 1.48
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.25,
+        "time_offset_hours": 1.59
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.2,
+        "time_offset_hours": 1.69
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.15,
+        "time_offset_hours": 1.8
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.1,
+        "time_offset_hours": 1.9
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.05,
+        "time_offset_hours": 2.01
+      },
+      {
+        "lat": -65.0,
+        "lon": 107.0,
+        "time_offset_hours": 2.11
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.95,
+        "time_offset_hours": 2.22
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.9,
+        "time_offset_hours": 2.33
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.85,
+        "time_offset_hours": 2.43
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.8,
+        "time_offset_hours": 2.54
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.75,
+        "time_offset_hours": 2.64
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.7,
+        "time_offset_hours": 2.75
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.65,
+        "time_offset_hours": 2.85
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.6,
+        "time_offset_hours": 2.96
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.55,
+        "time_offset_hours": 3.07
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.5,
+        "time_offset_hours": 3.17
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.45,
+        "time_offset_hours": 3.28
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.4,
+        "time_offset_hours": 3.38
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.35,
+        "time_offset_hours": 3.49
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.3,
+        "time_offset_hours": 3.59
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.25,
+        "time_offset_hours": 3.7
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.2,
+        "time_offset_hours": 3.81
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.15,
+        "time_offset_hours": 3.91
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.1,
+        "time_offset_hours": 4.02
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.05,
+        "time_offset_hours": 4.12
+      },
+      {
+        "lat": -65.0,
+        "lon": 106.0,
+        "time_offset_hours": 4.23
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.95,
+        "time_offset_hours": 4.33
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.9,
+        "time_offset_hours": 4.44
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.85,
+        "time_offset_hours": 4.55
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.8,
+        "time_offset_hours": 4.65
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.75,
+        "time_offset_hours": 4.76
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.7,
+        "time_offset_hours": 4.86
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.65,
+        "time_offset_hours": 4.97
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.6,
+        "time_offset_hours": 5.07
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.55,
+        "time_offset_hours": 5.18
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.5,
+        "time_offset_hours": 5.29
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.45,
+        "time_offset_hours": 5.39
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.4,
+        "time_offset_hours": 5.5
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.35,
+        "time_offset_hours": 5.6
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.3,
+        "time_offset_hours": 5.71
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.25,
+        "time_offset_hours": 5.81
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.2,
+        "time_offset_hours": 5.92
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.15,
+        "time_offset_hours": 6.03
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.1,
+        "time_offset_hours": 6.13
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.05,
+        "time_offset_hours": 6.24
+      },
+      {
+        "lat": -65.0,
+        "lon": 105.0,
+        "time_offset_hours": 6.34
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.95,
+        "time_offset_hours": 6.45
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.9,
+        "time_offset_hours": 6.55
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.85,
+        "time_offset_hours": 6.66
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.8,
+        "time_offset_hours": 6.77
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.75,
+        "time_offset_hours": 6.87
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.7,
+        "time_offset_hours": 6.98
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.65,
+        "time_offset_hours": 7.08
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.6,
+        "time_offset_hours": 7.19
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.55,
+        "time_offset_hours": 7.3
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.5,
+        "time_offset_hours": 7.4
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.45,
+        "time_offset_hours": 7.51
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.4,
+        "time_offset_hours": 7.61
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.35,
+        "time_offset_hours": 7.72
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.3,
+        "time_offset_hours": 7.82
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.25,
+        "time_offset_hours": 7.93
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.2,
+        "time_offset_hours": 8.04
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.15,
+        "time_offset_hours": 8.14
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.1,
+        "time_offset_hours": 8.25
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.05,
+        "time_offset_hours": 8.35
+      },
+      {
+        "lat": -65.0,
+        "lon": 104.0,
+        "time_offset_hours": 8.46
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.95,
+        "time_offset_hours": 8.56
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.9,
+        "time_offset_hours": 8.67
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.85,
+        "time_offset_hours": 8.78
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.8,
+        "time_offset_hours": 8.88
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.75,
+        "time_offset_hours": 8.99
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.7,
+        "time_offset_hours": 9.09
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.65,
+        "time_offset_hours": 9.2
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.6,
+        "time_offset_hours": 9.3
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.55,
+        "time_offset_hours": 9.41
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.5,
+        "time_offset_hours": 9.52
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.45,
+        "time_offset_hours": 9.62
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.4,
+        "time_offset_hours": 9.73
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.35,
+        "time_offset_hours": 9.83
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.3,
+        "time_offset_hours": 9.94
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.25,
+        "time_offset_hours": 10.04
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.2,
+        "time_offset_hours": 10.15
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.15,
+        "time_offset_hours": 10.26
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.1,
+        "time_offset_hours": 10.36
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.05,
+        "time_offset_hours": 10.47
+      },
+      {
+        "lat": -65.0,
+        "lon": 103.0,
+        "time_offset_hours": 10.57
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.95,
+        "time_offset_hours": 10.68
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.9,
+        "time_offset_hours": 10.78
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.85,
+        "time_offset_hours": 10.89
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.8,
+        "time_offset_hours": 11.0
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.75,
+        "time_offset_hours": 11.1
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.7,
+        "time_offset_hours": 11.21
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.65,
+        "time_offset_hours": 11.31
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.6,
+        "time_offset_hours": 11.42
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.55,
+        "time_offset_hours": 11.52
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.5,
+        "time_offset_hours": 11.63
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.45,
+        "time_offset_hours": 11.74
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.4,
+        "time_offset_hours": 11.84
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.35,
+        "time_offset_hours": 11.95
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.3,
+        "time_offset_hours": 12.05
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.25,
+        "time_offset_hours": 12.16
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.2,
+        "time_offset_hours": 12.26
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.15,
+        "time_offset_hours": 12.37
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.1,
+        "time_offset_hours": 12.48
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.05,
+        "time_offset_hours": 12.58
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.0,
+        "time_offset_hours": 12.69
+      }
+    ],
+    "metrics": {
+      "total_distance_nm": 152.25,
+      "total_distance_km": 281.96,
+      "estimated_time_hours": 12.69,
+      "estimated_fuel_tons": 7.93,
+      "estimated_fuel_cost_usd": 6740.02,
+      "mean_risk_score": 0.025,
+      "max_risk_score": 0.025,
+      "safety_index": 97.5,
+      "waypoint_count": 121
+    },
+    "algorithm_used": "A*",
+    "recalculated": false,
+    "notes": [
+      "Algorithm used: A*",
+      "Grid resolution: 0.05\u00b0 (~5.6 km)",
+      "Icebergs evaluated: 37",
+      "Prototype Assumptions: Constant vessel cruising speed; linear fuel burn model; 2D Gaussian drift uncertainty."
+    ]
+  },
+  "recalculated_route": {
+    "route_id": "ROUTE-10A4AB37",
+    "vessel_id": "RV-AURORA-AUSTRALIS",
+    "waypoints": [
+      {
+        "lat": -65.0,
+        "lon": 108.0,
+        "time_offset_hours": 0.0
+      },
+      {
+        "lat": -65.05,
+        "lon": 107.95,
+        "time_offset_hours": 0.27
+      },
+      {
+        "lat": -65.1,
+        "lon": 107.9,
+        "time_offset_hours": 0.54
+      },
+      {
+        "lat": -65.15,
+        "lon": 107.85,
+        "time_offset_hours": 0.81
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.8,
+        "time_offset_hours": 1.09
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.75,
+        "time_offset_hours": 1.19
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.7,
+        "time_offset_hours": 1.3
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.65,
+        "time_offset_hours": 1.4
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.6,
+        "time_offset_hours": 1.51
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.55,
+        "time_offset_hours": 1.61
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.5,
+        "time_offset_hours": 1.72
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.45,
+        "time_offset_hours": 1.82
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.4,
+        "time_offset_hours": 1.93
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.35,
+        "time_offset_hours": 2.03
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.3,
+        "time_offset_hours": 2.14
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.25,
+        "time_offset_hours": 2.24
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.2,
+        "time_offset_hours": 2.34
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.15,
+        "time_offset_hours": 2.45
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.1,
+        "time_offset_hours": 2.55
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.05,
+        "time_offset_hours": 2.66
+      },
+      {
+        "lat": -65.2,
+        "lon": 107.0,
+        "time_offset_hours": 2.76
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.95,
+        "time_offset_hours": 2.87
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.9,
+        "time_offset_hours": 2.97
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.85,
+        "time_offset_hours": 3.08
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.8,
+        "time_offset_hours": 3.18
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.75,
+        "time_offset_hours": 3.29
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.7,
+        "time_offset_hours": 3.39
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.65,
+        "time_offset_hours": 3.5
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.6,
+        "time_offset_hours": 3.6
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.55,
+        "time_offset_hours": 3.71
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.5,
+        "time_offset_hours": 3.81
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.45,
+        "time_offset_hours": 3.92
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.4,
+        "time_offset_hours": 4.02
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.35,
+        "time_offset_hours": 4.13
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.3,
+        "time_offset_hours": 4.23
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.25,
+        "time_offset_hours": 4.34
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.2,
+        "time_offset_hours": 4.44
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.15,
+        "time_offset_hours": 4.55
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.1,
+        "time_offset_hours": 4.65
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.05,
+        "time_offset_hours": 4.76
+      },
+      {
+        "lat": -65.2,
+        "lon": 106.0,
+        "time_offset_hours": 4.86
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.95,
+        "time_offset_hours": 4.97
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.9,
+        "time_offset_hours": 5.07
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.85,
+        "time_offset_hours": 5.18
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.8,
+        "time_offset_hours": 5.28
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.75,
+        "time_offset_hours": 5.39
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.7,
+        "time_offset_hours": 5.49
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.65,
+        "time_offset_hours": 5.6
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.6,
+        "time_offset_hours": 5.7
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.55,
+        "time_offset_hours": 5.81
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.5,
+        "time_offset_hours": 5.91
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.45,
+        "time_offset_hours": 6.02
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.4,
+        "time_offset_hours": 6.12
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.35,
+        "time_offset_hours": 6.23
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.3,
+        "time_offset_hours": 6.33
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.25,
+        "time_offset_hours": 6.44
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.2,
+        "time_offset_hours": 6.54
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.15,
+        "time_offset_hours": 6.65
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.1,
+        "time_offset_hours": 6.75
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.05,
+        "time_offset_hours": 6.86
+      },
+      {
+        "lat": -65.2,
+        "lon": 105.0,
+        "time_offset_hours": 6.96
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.95,
+        "time_offset_hours": 7.07
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.9,
+        "time_offset_hours": 7.17
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.85,
+        "time_offset_hours": 7.28
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.8,
+        "time_offset_hours": 7.38
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.75,
+        "time_offset_hours": 7.49
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.7,
+        "time_offset_hours": 7.59
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.65,
+        "time_offset_hours": 7.7
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.6,
+        "time_offset_hours": 7.8
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.55,
+        "time_offset_hours": 7.91
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.5,
+        "time_offset_hours": 8.01
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.45,
+        "time_offset_hours": 8.12
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.4,
+        "time_offset_hours": 8.22
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.35,
+        "time_offset_hours": 8.33
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.3,
+        "time_offset_hours": 8.43
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.25,
+        "time_offset_hours": 8.54
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.2,
+        "time_offset_hours": 8.64
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.15,
+        "time_offset_hours": 8.75
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.1,
+        "time_offset_hours": 8.85
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.05,
+        "time_offset_hours": 8.96
+      },
+      {
+        "lat": -65.2,
+        "lon": 104.0,
+        "time_offset_hours": 9.06
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.95,
+        "time_offset_hours": 9.17
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.9,
+        "time_offset_hours": 9.27
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.85,
+        "time_offset_hours": 9.38
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.8,
+        "time_offset_hours": 9.48
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.75,
+        "time_offset_hours": 9.59
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.7,
+        "time_offset_hours": 9.69
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.65,
+        "time_offset_hours": 9.8
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.6,
+        "time_offset_hours": 9.9
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.55,
+        "time_offset_hours": 10.01
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.5,
+        "time_offset_hours": 10.11
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.45,
+        "time_offset_hours": 10.21
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.4,
+        "time_offset_hours": 10.32
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.35,
+        "time_offset_hours": 10.42
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.3,
+        "time_offset_hours": 10.53
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.25,
+        "time_offset_hours": 10.63
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.2,
+        "time_offset_hours": 10.74
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.15,
+        "time_offset_hours": 10.84
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.1,
+        "time_offset_hours": 10.95
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.05,
+        "time_offset_hours": 11.05
+      },
+      {
+        "lat": -65.2,
+        "lon": 103.0,
+        "time_offset_hours": 11.16
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.95,
+        "time_offset_hours": 11.26
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.9,
+        "time_offset_hours": 11.37
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.85,
+        "time_offset_hours": 11.47
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.8,
+        "time_offset_hours": 11.58
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.75,
+        "time_offset_hours": 11.68
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.7,
+        "time_offset_hours": 11.79
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.65,
+        "time_offset_hours": 11.89
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.6,
+        "time_offset_hours": 12.0
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.55,
+        "time_offset_hours": 12.1
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.5,
+        "time_offset_hours": 12.21
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.45,
+        "time_offset_hours": 12.31
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.4,
+        "time_offset_hours": 12.42
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.35,
+        "time_offset_hours": 12.52
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.3,
+        "time_offset_hours": 12.63
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.25,
+        "time_offset_hours": 12.73
+      },
+      {
+        "lat": -65.2,
+        "lon": 102.2,
+        "time_offset_hours": 12.84
+      },
+      {
+        "lat": -65.15,
+        "lon": 102.15,
+        "time_offset_hours": 13.11
+      },
+      {
+        "lat": -65.1,
+        "lon": 102.1,
+        "time_offset_hours": 13.38
+      },
+      {
+        "lat": -65.05,
+        "lon": 102.05,
+        "time_offset_hours": 13.65
+      },
+      {
+        "lat": -65.0,
+        "lon": 102.0,
+        "time_offset_hours": 13.92
+      }
+    ],
+    "metrics": {
+      "total_distance_nm": 167.09,
+      "total_distance_km": 309.45,
+      "estimated_time_hours": 13.92,
+      "estimated_fuel_tons": 8.7,
+      "estimated_fuel_cost_usd": 7397.17,
+      "mean_risk_score": 0.0288,
+      "max_risk_score": 0.0438,
+      "safety_index": 97.1,
+      "waypoint_count": 121
+    },
+    "algorithm_used": "A*",
+    "recalculated": true,
+    "notes": [
+      "Algorithm used: A*",
+      "Grid resolution: 0.05\u00b0 (~5.6 km)",
+      "Icebergs evaluated: 31",
+      "Prototype Assumptions: Constant vessel cruising speed; linear fuel burn model; 2D Gaussian drift uncertainty.",
+      "Route dynamically recalculated due to updated iceberg predictions."
+    ]
+  }
+}

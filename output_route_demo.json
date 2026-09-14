@@ -1,0 +1,186 @@
+{
+  "route_id": "ROUTE-749135AC",
+  "vessel_id": "VESSEL-R/V-PALMER",
+  "waypoints": [
+    {
+      "lat": -75.02,
+      "lon": 165.0,
+      "time_offset_hours": 0.0
+    },
+    {
+      "lat": -75.1,
+      "lon": 165.08,
+      "time_offset_hours": 0.43
+    },
+    {
+      "lat": -75.18,
+      "lon": 165.16,
+      "time_offset_hours": 0.86
+    },
+    {
+      "lat": -75.26,
+      "lon": 165.24,
+      "time_offset_hours": 1.29
+    },
+    {
+      "lat": -75.34,
+      "lon": 165.32,
+      "time_offset_hours": 1.72
+    },
+    {
+      "lat": -75.42,
+      "lon": 165.4,
+      "time_offset_hours": 2.16
+    },
+    {
+      "lat": -75.5,
+      "lon": 165.48,
+      "time_offset_hours": 2.59
+    },
+    {
+      "lat": -75.58,
+      "lon": 165.56,
+      "time_offset_hours": 3.02
+    },
+    {
+      "lat": -75.66,
+      "lon": 165.64,
+      "time_offset_hours": 3.45
+    },
+    {
+      "lat": -75.74,
+      "lon": 165.72,
+      "time_offset_hours": 3.88
+    },
+    {
+      "lat": -75.82,
+      "lon": 165.8,
+      "time_offset_hours": 4.31
+    },
+    {
+      "lat": -75.9,
+      "lon": 165.88,
+      "time_offset_hours": 4.74
+    },
+    {
+      "lat": -75.98,
+      "lon": 165.96,
+      "time_offset_hours": 5.17
+    },
+    {
+      "lat": -76.06,
+      "lon": 166.04,
+      "time_offset_hours": 5.6
+    },
+    {
+      "lat": -76.14,
+      "lon": 166.12,
+      "time_offset_hours": 6.03
+    },
+    {
+      "lat": -76.22,
+      "lon": 166.2,
+      "time_offset_hours": 6.46
+    },
+    {
+      "lat": -76.3,
+      "lon": 166.28,
+      "time_offset_hours": 6.88
+    },
+    {
+      "lat": -76.38,
+      "lon": 166.36,
+      "time_offset_hours": 7.31
+    },
+    {
+      "lat": -76.46,
+      "lon": 166.44,
+      "time_offset_hours": 7.74
+    },
+    {
+      "lat": -76.54,
+      "lon": 166.52,
+      "time_offset_hours": 8.17
+    },
+    {
+      "lat": -76.62,
+      "lon": 166.6,
+      "time_offset_hours": 8.6
+    },
+    {
+      "lat": -76.7,
+      "lon": 166.68,
+      "time_offset_hours": 9.03
+    },
+    {
+      "lat": -76.78,
+      "lon": 166.68,
+      "time_offset_hours": 9.45
+    },
+    {
+      "lat": -76.86,
+      "lon": 166.68,
+      "time_offset_hours": 9.86
+    },
+    {
+      "lat": -76.94,
+      "lon": 166.68,
+      "time_offset_hours": 10.28
+    },
+    {
+      "lat": -77.02,
+      "lon": 166.68,
+      "time_offset_hours": 10.7
+    },
+    {
+      "lat": -77.1,
+      "lon": 166.68,
+      "time_offset_hours": 11.12
+    },
+    {
+      "lat": -77.18,
+      "lon": 166.68,
+      "time_offset_hours": 11.54
+    },
+    {
+      "lat": -77.26,
+      "lon": 166.68,
+      "time_offset_hours": 11.95
+    },
+    {
+      "lat": -77.34,
+      "lon": 166.68,
+      "time_offset_hours": 12.37
+    },
+    {
+      "lat": -77.42,
+      "lon": 166.6,
+      "time_offset_hours": 12.8
+    },
+    {
+      "lat": -77.5,
+      "lon": 166.52,
+      "time_offset_hours": 13.23
+    }
+  ],
+  "metrics": {
+    "total_distance_nm": 152.09,
+    "total_distance_km": 281.68,
+    "estimated_time_hours": 13.23,
+    "estimated_fuel_tons": 7.71,
+    "estimated_fuel_cost_usd": 6557.7,
+    "mean_risk_score": 0.0283,
+    "max_risk_score": 0.0411,
+    "safety_index": 97.2,
+    "waypoint_count": 32
+  },
+  "algorithm_used": "A*",
+  "recalculated": true,
+  "notes": [
+    "Algorithm used: A*",
+    "Grid resolution: 0.08\u00b0 (~8.9 km)",
+    "Icebergs evaluated: 2",
+    "Prototype Assumptions: Constant vessel cruising speed; linear fuel burn model; 2D Gaussian drift uncertainty.",
+    "Route dynamically recalculated due to updated iceberg predictions."
+  ]
+}

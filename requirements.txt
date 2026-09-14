@@ -1,0 +1,6 @@
+# ICEWISE - SIH 2026 (SIH26059)
+# Risk Assessment and Route Optimization Engine Dependencies
+
+# Python standard library is sufficient for core graph pathfinding and metrics.
+# Optional testing dependencies:
+pytest>=7.0.0
