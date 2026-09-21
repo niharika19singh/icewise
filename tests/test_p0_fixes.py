@@ -417,6 +417,44 @@ class TestAPIErrorHandling:
         assert resp.status_code == 422
         assert self._error_code(resp.json()) == "IDENTICAL_POINTS"
 
+    def test_corridor_too_large_returns_422(self, client):
+        """
+        Oversized cross-region corridor must be rejected immediately with
+        422 CORRIDOR_TOO_LARGE before any grid is built, preventing free-tier
+        compute timeouts.
+        lat_span=13°, lon_span=30° → ~(14/0.1+1)*(31/0.1+1) ≈ 43,772 nodes > 10,000 limit.
+        """
+        resp = client.post("/api/route", json={
+            "vessel_id": "V1",
+            "start_point": {"lat": -75.0, "lon": -60.0},
+            "destination": {"lat": -62.0, "lon": -30.0},
+        })
+        assert resp.status_code == 422, (
+            f"Expected 422 CORRIDOR_TOO_LARGE, got {resp.status_code}: {resp.text[:300]}"
+        )
+        assert self._error_code(resp.json()) == "CORRIDOR_TOO_LARGE"
+        data = resp.json()
+        assert "estimated_grid_nodes" in data.get("detail", data), \
+            "CORRIDOR_TOO_LARGE response must include estimated_grid_nodes"
+
+    def test_corridor_at_limit_succeeds(self, client):
+        """
+        The standard Weddell demo corridor (lat_span=2.5°, lon_span=2.0°,
+        ~1,900 nodes) must still pass the corridor check without error.
+        """
+        # Just test that the corridor check does NOT reject this — the routing
+        # itself may still need the CSV so we only assert it gets past validation
+        # (200 if CSV present, 500 DATASET_MISSING if not — neither is 422 CORRIDOR_TOO_LARGE)
+        resp = client.post("/api/route", json={
+            "vessel_id": "RV-01",
+            "start_point": {"lat": -77.0, "lon": -42.0},
+            "destination": {"lat": -74.5, "lon": -40.0},
+        })
+        code = self._error_code(resp.json()) if resp.status_code != 200 else None
+        assert code != "CORRIDOR_TOO_LARGE", (
+            "Demo Weddell corridor must NOT be rejected as CORRIDOR_TOO_LARGE"
+        )
+
     def test_malformed_request_missing_field_returns_422(self, client):
         # Missing required destination field → Pydantic validation error
         resp = client.post("/api/route", json={

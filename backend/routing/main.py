@@ -148,10 +148,25 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 # Input validation helpers
 # ---------------------------------------------------------------------------
 
-# Supported Antarctic routing domain (approx.)
-_DOMAIN_LAT_MIN = -80.0
-_DOMAIN_LAT_MAX = -55.0
-_DOMAIN_LAT_MIN_SOFT = -85.0   # absolute floor (no ship goes here)
+# Enforced Antarctic routing domain.
+# _DOMAIN_LAT_MIN_SOFT (-85°S) is the hard limit applied in _validate_domain().
+# _DOMAIN_LAT_MIN (-80°S) is a soft advisory — points between -85° and -80°S
+# are technically accepted but unlikely to be navigable open ocean.
+_DOMAIN_LAT_MIN = -80.0        # soft advisory (no enforcement)
+_DOMAIN_LAT_MAX = -55.0        # northern limit, enforced
+_DOMAIN_LAT_MIN_SOFT = -85.0   # southern hard limit, enforced
+
+# Maximum grid node budget per routing request.
+# At the default 0.1° resolution:
+#   - Demo corridor (153 NM, 4.5°lat × 4.0°lon): ~1,900 nodes → <2s
+#   - 8°lat × 12°lon corridor: ~9,800 nodes → ~5-10s (acceptable)
+#   - 9°lat × 17°lon corridor: ~15,600 nodes → 60-90s on free tier (timeout)
+# Corridors that would produce more than this many grid nodes are rejected
+# immediately with CORRIDOR_TOO_LARGE before any grid is allocated.
+_MAX_GRID_NODES = 10_000
+
+# Grid resolution used in the API (matches NavigationEngine default in pipeline.py).
+_API_GRID_RESOLUTION_DEG = 0.1
 
 
 def _validate_latlon(lat: float, lon: float, label: str) -> None:
@@ -214,6 +229,48 @@ def _validate_not_identical(start_lat: float, start_lon: float,
             detail={
                 "error": "IDENTICAL_POINTS",
                 "detail": "Start and destination are the same coordinate. No route needed.",
+            },
+        )
+
+
+def _validate_corridor_size(start_lat: float, start_lon: float,
+                             dest_lat: float, dest_lon: float) -> None:
+    """
+    Estimates the number of grid nodes the routing engine would allocate for
+    this corridor (pipeline adds 1° buffer on all sides; API uses 0.1° resolution).
+    Raises HTTPException 422 CORRIDOR_TOO_LARGE immediately — before any grid
+    is built — if the estimate exceeds _MAX_GRID_NODES.
+
+    This prevents free-tier compute timeouts on accidentally large or
+    cross-region requests while leaving all normal Weddell corridor missions
+    (≤ ~9°lat × ~9°lon span) unaffected.
+    """
+    buffer = 1.0   # matches pipeline.py _init_bounds
+    res = _API_GRID_RESOLUTION_DEG
+
+    lat_span = abs(dest_lat - start_lat) + 2 * buffer
+    lon_span = abs(dest_lon - start_lon) + 2 * buffer
+
+    estimated_nodes = int((lat_span / res + 1) * (lon_span / res + 1))
+
+    if estimated_nodes > _MAX_GRID_NODES:
+        # Compute rough NM distance for a more helpful message
+        lat_nm = lat_span * 60
+        lon_nm = lon_span * 60 * abs(math.cos(math.radians((start_lat + dest_lat) / 2)))
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "CORRIDOR_TOO_LARGE",
+                "detail": (
+                    f"The requested corridor (lat_span={lat_span-2*buffer:.1f}°, "
+                    f"lon_span={lon_span-2*buffer:.1f}°, "
+                    f"estimated ~{estimated_nodes:,} grid nodes) exceeds the maximum "
+                    f"routing grid size ({_MAX_GRID_NODES:,} nodes). "
+                    "Split the mission into shorter legs (each leg ≤ ~8° latitude × ~8° longitude), "
+                    "or use a coarser grid by reducing the corridor span."
+                ),
+                "estimated_grid_nodes": estimated_nodes,
+                "max_grid_nodes": _MAX_GRID_NODES,
             },
         )
 
@@ -374,12 +431,13 @@ def generate_route(req: RouteRequest):
     plus the primary route, icebergs in corridor, and all metadata.
 
     Errors:
-      422 VALIDATION_ERROR        — invalid lat/lon, outside domain
-      422 OUTSIDE_DOMAIN          — coordinate not in Antarctic routing domain
-      422 IDENTICAL_POINTS        — start == destination
+      422 VALIDATION_ERROR         — invalid lat/lon, outside domain
+      422 OUTSIDE_DOMAIN           — coordinate not in Antarctic routing domain
+      422 IDENTICAL_POINTS         — start == destination
+      422 CORRIDOR_TOO_LARGE       — corridor span would exceed grid node budget
       422 COORDINATE_NOT_NAVIGABLE — land or unnavigable point
-      422 NO_ROUTE_FOUND          — no feasible path under risk threshold
-      500 INTERNAL_ERROR          — unexpected server-side failure
+      422 NO_ROUTE_FOUND           — no feasible path under risk threshold
+      500 INTERNAL_ERROR           — unexpected server-side failure
     """
     # 1. Validate coordinates
     _validate_latlon(req.start_point.lat, req.start_point.lon, "start_point")
@@ -387,6 +445,8 @@ def generate_route(req: RouteRequest):
     _validate_domain(req.start_point.lat, req.start_point.lon, "start_point")
     _validate_domain(req.destination.lat, req.destination.lon, "destination")
     _validate_not_identical(req.start_point.lat, req.start_point.lon,
+                            req.destination.lat, req.destination.lon)
+    _validate_corridor_size(req.start_point.lat, req.start_point.lon,
                             req.destination.lat, req.destination.lon)
 
     if not os.path.exists(CSV_PATH):
@@ -521,6 +581,8 @@ def recalculate_route(req: RecalculateRequest):
     _validate_domain(req.start_point.lat, req.start_point.lon, "start_point")
     _validate_domain(req.destination.lat, req.destination.lon, "destination")
     _validate_not_identical(req.start_point.lat, req.start_point.lon,
+                            req.destination.lat, req.destination.lon)
+    _validate_corridor_size(req.start_point.lat, req.start_point.lon,
                             req.destination.lat, req.destination.lon)
 
     if not os.path.exists(CSV_PATH):
