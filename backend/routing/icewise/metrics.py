@@ -12,8 +12,15 @@ def calculate_route_metrics(path: List[Tuple[float, float]],
                             vessel: VesselProfile,
                             risk_engine: ProbabilisticRiskEngine) -> Tuple[RouteMetrics, List[Waypoint]]:
     """
-    Computes distance, transit time, fuel consumption, and risk statistics for a path of (lat, lon) coordinates.
-    Returns RouteMetrics and list of Waypoint objects with assigned cumulative ETA timestamps.
+    Computes distance, transit time, fuel consumption, and risk statistics for a path
+    of (lat, lon) coordinates.
+
+    Risk is evaluated **temporally**: each waypoint's risk score uses its cumulative
+    ETA (time_offset_hours) as the time offset, so the risk engine interpolates the
+    iceberg to its predicted position at the moment the vessel actually arrives at that
+    cell — not the t=0 snapshot.
+
+    Returns RouteMetrics and list of Waypoint objects with assigned cumulative ETA.
     """
     if not path:
         raise ValueError("Cannot calculate metrics for empty path")
@@ -49,8 +56,14 @@ def calculate_route_metrics(path: List[Tuple[float, float]],
     # Benchmark MGO (Marine Gas Oil) price ~$850 / Metric Ton
     estimated_fuel_cost_usd = estimated_fuel_tons * 850.0
 
-    # Risk statistics along path
-    path_risks = [risk_engine.calculate_total_risk(lat, lon) for lat, lon in path]
+    # Temporal risk statistics: evaluate each waypoint at its arrival time.
+    # This uses the risk engine's time-aware iceberg interpolation so that
+    # risk reflects where icebergs will actually be when the vessel arrives —
+    # not where they are right now.
+    path_risks = [
+        risk_engine.calculate_total_risk(wp.lat, wp.lon, time_offset_hours=wp.time_offset_hours)
+        for wp in waypoints
+    ]
     mean_risk = sum(path_risks) / len(path_risks) if path_risks else 0.0
     max_risk = max(path_risks) if path_risks else 0.0
     safety_index = max(0.0, min(100.0, 100.0 * (1.0 - mean_risk)))
@@ -146,9 +159,8 @@ def calculate_route_comparison(
         "relative_fuel_consumption_pct": rel_fuel_pct,
         "fuel_change_pct": fuel_change_pct,
         "risk_reduction_pct": risk_reduction_pct,
-        "assumption": "Fuel consumption calculated proportional to route transit distance at constant vessel speed."
+        "assumption": "Fuel consumption calculated proportional to route transit distance at constant vessel speed.",
     }
 
     route.comparison = comparison_dict
     return comparison_dict
-
