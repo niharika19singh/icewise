@@ -1,10 +1,11 @@
+import { REPLAY_DATE_LABEL } from "./replay";
 import type { RouteResponse, IcebergPrediction } from "./types";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-line/60 py-2 last:border-b-0">
       <span className="font-mono text-[10px] uppercase tracking-mission text-mist">{label}</span>
-      <span className="font-mono text-sm text-frost">{value}</span>
+      <span className="min-w-0 text-right font-mono text-sm text-frost [overflow-wrap:anywhere]">{value}</span>
     </div>
   );
 }
@@ -36,22 +37,18 @@ function IcebergOverview({ route }: { route: RouteResponse }) {
   const icebergs = route.icebergs;
   const allHorizons = icebergs.flatMap((ib) => ib.predicted_positions.map((p) => p.time_offset_hours));
   const horizon = allHorizons.length > 0 ? Math.max(...allHorizons) : null;
-  const avgConfidence =
-    icebergs.length > 0
-      ? icebergs.reduce((sum, ib) => sum + ib.confidence_score, 0) / icebergs.length
-      : null;
 
   return (
     <div className="mt-4 flex flex-col">
-      <Stat label="Icebergs Detected" value={String(icebergs.length)} />
+      <Stat label="Snapshot" value={`${REPLAY_DATE_LABEL} · historical`} />
+      <Stat label="Icebergs In Corridor" value={String(icebergs.length)} />
+      {typeof route.iceberg_prediction_count === "number" && (
+        <Stat label="Evaluated By Risk Engine" value={String(route.iceberg_prediction_count)} />
+      )}
       <Stat label="Prediction Horizon" value={horizon !== null ? `Up to +${horizon}h` : "N/A"} />
       <Stat
         label="Route Risk Exposure"
         value={`Mean ${(route.metrics.mean_risk_score * 100).toFixed(2)}% / Max ${(route.metrics.max_risk_score * 100).toFixed(2)}%`}
-      />
-      <Stat
-        label="Avg. Prediction Confidence"
-        value={avgConfidence !== null ? `${(avgConfidence * 100).toFixed(1)}%` : "N/A"}
       />
       <p className="mt-4 font-body text-xs leading-relaxed text-mist">
         {icebergs.length > 0
@@ -84,10 +81,7 @@ function IcebergDetail({ iceberg, onBack }: { iceberg: IcebergPrediction; onBack
         }
       />
       <Stat label="Spatial Uncertainty" value={`${iceberg.spatial_uncertainty_km.toFixed(2)} km`} />
-      <Stat label="Confidence Score" value={`${(iceberg.confidence_score * 100).toFixed(1)}%`} />
-      <Stat label="Drift Velocity" value={`${iceberg.drift_velocity_knots.toFixed(2)} kn`} />
-      <Stat label="Drift Bearing" value={`${iceberg.drift_bearing_deg.toFixed(1)}°`} />
-      <Stat label="Size Category" value={iceberg.size_category || "N/A"} />
+      <Stat label="Snapshot" value={`${REPLAY_DATE_LABEL} · historical`} />
 
       {iceberg.predicted_positions.length > 0 && (
         <div className="mt-4">
@@ -104,6 +98,14 @@ function IcebergDetail({ iceberg, onBack }: { iceberg: IcebergPrediction; onBack
           </ul>
         </div>
       )}
+      <p className="mt-4 font-body text-xs leading-relaxed text-mist/70">
+        Spatial uncertainty is a positional-radius heuristic (drawn on the map as a growing envelope
+        along the predicted trajectory) — not a calibrated collision probability or confidence estimate.
+      </p>
+      <p className="mt-2 font-body text-xs leading-relaxed text-mist/70">
+        Prediction confidence, drift speed/bearing and size class are not provided by the prediction
+        dataset, so they are not shown.
+      </p>
     </div>
   );
 }

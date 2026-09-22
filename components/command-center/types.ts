@@ -66,7 +66,27 @@ export type RouteOption = {
   risk_tolerance_factor: number;
   waypoints: RouteWaypoint[];
   metrics: RouteMetrics;
+  // Real per-waypoint risk score (same values metrics.mean/max_risk_score are
+  // derived from), one entry per waypoint, in order. Powers "risk over time"
+  // displays (e.g. mission replay) without recomputing anything client-side.
+  waypoint_risks?: number[];
 };
+
+// A strategy the backend could not solve. POST /api/route reports this in-band
+// (backend/routing/main.py -> _build_route_options) instead of failing the whole
+// request, so such an entry has no route_id, waypoints or metrics.
+export type FailedRouteOption = {
+  label: string;
+  risk_tolerance_factor: number;
+  error: string;
+  detail?: string;
+};
+
+export type RouteOptionResult = RouteOption | FailedRouteOption;
+
+export function isRouteOption(option: RouteOptionResult): option is RouteOption {
+  return "waypoints" in option && "metrics" in option;
+}
 
 export type RouteResponse = {
   route_id: string;
@@ -80,7 +100,35 @@ export type RouteResponse = {
   comparison?: RouteComparison;
   // Only present on the initial POST /api/route response, not on
   // /api/route/recalculate.
-  route_options?: RouteOption[];
+  route_options?: RouteOptionResult[];
+  // Additive fields the routing API sends on POST /api/route (and, for the
+  // first three, on /api/route/recalculate). All optional: the UI only uses
+  // them when they are actually present.
+  sea_ice_integrated?: boolean;
+  // Every iceberg prediction the risk engine evaluated for this snapshot — not
+  // just those inside the corridor (`icebergs` is the corridor subset).
+  iceberg_prediction_count?: number;
+  warnings?: string[];
+  // Only present when the requested point was moved to the nearest grid node.
+  snapped_start?: { lat: number; lon: number };
+  snapped_start_reason?: string;
+  snapped_destination?: { lat: number; lon: number };
+  snapped_destination_reason?: string;
+  // Real per-waypoint risk score for the primary route, parallel to
+  // `waypoints` (see RouteOption.waypoint_risks — same source).
+  waypoint_risks?: number[];
+  // The real maximum forecast horizon (hours) actually present across the
+  // iceberg predictions used for this request. null when there were none to
+  // draw a horizon from — never a fabricated default.
+  forecast_horizon_hours?: number | null;
+  // Only present when the request opted in with `time_aware: true`. Same 3
+  // strategies as `route_options`, but path search used a time-aware risk
+  // grid (each cell evaluated at its estimated arrival time) instead of the
+  // static worst-case forecast envelope. See time_aware_methodology for the
+  // exact caveat — a bounded ETA approximation, not the actual
+  // path-dependent arrival time and not a time-expanded-graph search.
+  time_aware_route_options?: RouteOptionResult[];
+  time_aware_methodology?: string;
 };
 
 // The map's real, currently-available layers — deliberately excludes any
@@ -127,4 +175,11 @@ export type C18BValidation = {
   mean_physics_error_km: number;
   mean_hybrid_error_km: number;
   other_horizons_available: boolean;
+};
+
+// A failure shown to the operator: a concise, actionable message, plus the
+// backend's own detail text (when it sent a string) for an optional expander.
+export type OperatorError = {
+  message: string;
+  detail?: string;
 };

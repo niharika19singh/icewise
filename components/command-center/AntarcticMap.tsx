@@ -5,7 +5,17 @@ import { MapLibreMap, Marker, AttributionControl, setWorkerUrl, type StyleSpecif
 import { buildGraticule } from "./graticule";
 import { PlusIcon, MinusIcon, LocateIcon, CompassIcon } from "./icons";
 import MapLegend from "./MapLegend";
-import type { RouteResponse, RouteWaypoint, LayerVisibility, SeaIceGeoJSON } from "./types";
+import type { PickTarget, MissionPoint } from "./MissionPlanner";
+import {
+  isRouteOption,
+  type RouteResponse,
+  type RouteWaypoint,
+  type LayerVisibility,
+  type SeaIceGeoJSON,
+  type IcebergPrediction,
+} from "./types";
+import { PIN_COLORS, routeStrategyColor } from "./routeStyle";
+import { interpolateIcebergPosition, interpolateVesselPosition } from "./replayEngine";
 
 // Root-cause fix for invisible GeoJSON layers (route lines, iceberg markers,
 // the graticule): maplibre-gl derives its worker script URL from its own
@@ -157,14 +167,19 @@ function buildRouteGeoJSON(route: RouteResponse) {
 // The 3 real route options from POST /api/route's additive `route_options`
 // (backend/routing/main.py -> _build_route_options) — each already a full,
 // independently-computed waypoint list from the real routing engine at a
-// different real risk_tolerance_factor. Used as-is, not reconstructed.
+// different real risk_tolerance_factor. Used as-is, not reconstructed. The
+// only value computed here is `strategy_color` — the fixed, cosmetic
+// Safety=green / Balanced=amber / Shortest=red mapping (routeStyle.ts),
+// baked into the feature properties so the paint expression below can just
+// read it, rather than re-implementing the label match in MapLibre's
+// expression language.
 function buildRouteOptionsGeoJSON(route: RouteResponse): GeoJSON.FeatureCollection<GeoJSON.LineString> {
-  const options = route.route_options ?? [];
+  const options = (route.route_options ?? []).filter(isRouteOption);
   return {
     type: "FeatureCollection",
     features: options.map((opt) => ({
       type: "Feature",
-      properties: { route_id: opt.route_id, label: opt.label },
+      properties: { route_id: opt.route_id, label: opt.label, strategy_color: routeStrategyColor(opt.label) },
       geometry: { type: "LineString", coordinates: opt.waypoints.map((w) => [w.lon, w.lat]) },
     })),
   };
@@ -193,6 +208,26 @@ function buildUncertaintyCircle(lat: number, lon: number, radiusKm: number, step
     geometry: { type: "Polygon", coordinates: [coords] },
   };
   return feature;
+}
+
+// Uncertainty ENVELOPE along an iceberg's real predicted trajectory: one
+// circle per real position (current_position + each predicted_positions
+// entry), not just at t=0. Radius uses the exact same expanding-uncertainty
+// formula the backend's risk engine already computes server-side
+// (backend/routing/icewise/risk_engine.py -> calculate_iceberg_collision_risk:
+// sigma(t) = spatial_uncertainty_km + 0.05*t) — reused here for the visual
+// radius, not reinvented. This is a positional-radius heuristic, NOT a
+// calibrated collision probability or confidence contour (see the
+// disclaimer rendered alongside it in IcebergIntelligence.tsx).
+function buildUncertaintyEnvelope(iceberg: IcebergPrediction): GeoJSON.FeatureCollection<GeoJSON.Polygon> {
+  const positions = [iceberg.current_position, ...iceberg.predicted_positions];
+  return {
+    type: "FeatureCollection",
+    features: positions.map((pos) => {
+      const radiusKm = Math.max(0.5, iceberg.spatial_uncertainty_km + 0.05 * pos.time_offset_hours);
+      return buildUncertaintyCircle(pos.lat, pos.lon, radiusKm);
+    }),
+  };
 }
 
 // Small chevrons placed along the real route line, between actual consecutive
@@ -227,19 +262,100 @@ function buildDirectionArrows(waypoints: RouteWaypoint[], maxArrows = 6) {
   return { type: "FeatureCollection", features } as GeoJSON.FeatureCollection<GeoJSON.LineString>;
 }
 
-// A plain DOM glyph marker (◆ vessel, ◎ destination) instead of a GL circle —
-// gives the vessel/destination a crisp, legend-matching symbol that stays
-// legible at the wide Antarctic zoom levels this map is meant to stay at.
-function createGlyphMarkerElement(glyph: string, color: string) {
-  const el = document.createElement("div");
-  el.textContent = glyph;
-  el.style.fontSize = "20px";
-  el.style.lineHeight = "1";
-  el.style.color = color;
-  el.style.textShadow = `0 0 4px ${color}, 0 0 10px ${color}99`;
-  el.style.pointerEvents = "none";
-  el.style.userSelect = "none";
-  return el;
+// A plain DOM marker (a real map-pin shape, drawn as inline SVG) instead of a
+// GL circle — DOM markers always render above every GL layer (all route
+// lines, iceberg points, sea-ice), so the pins stay visible over the routes
+// with no z-index bookkeeping. `hollow` renders the "not yet generated" draft
+// variant: an outline pin instead of a filled one, at reduced opacity — same
+// shape as the committed marker, so a draft reads as "this pin, provisional"
+// rather than a different symbol the operator has to learn separately.
+function createPinElement(color: string, label: string, hollow = false) {
+  const wrap = document.createElement("div");
+  wrap.style.display = "flex";
+  wrap.style.flexDirection = "column";
+  wrap.style.alignItems = "center";
+  wrap.style.pointerEvents = "none";
+  wrap.style.userSelect = "none";
+  wrap.title = hollow ? `${label} (draft — not yet generated)` : label;
+
+  const caption = document.createElement("span");
+  caption.textContent = label;
+  caption.style.marginBottom = "2px";
+  caption.style.fontFamily = "var(--font-mono)";
+  caption.style.fontSize = "8px";
+  caption.style.letterSpacing = "0.16em";
+  caption.style.fontWeight = "600";
+  caption.style.color = color;
+  caption.style.textShadow = "0 0 3px #05080a, 0 1px 3px #05080a";
+  caption.style.opacity = hollow ? "0.75" : "1";
+  wrap.appendChild(caption);
+
+  // Anchor point = the pin's own tip (bottom-center of the SVG), so the
+  // marker's Marker({anchor:"bottom"}) below lands exactly on the coordinate
+  // even though the caption sits above it.
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", "0 0 32 42");
+  const size = hollow ? 24 : 30;
+  svg.setAttribute("width", String(size));
+  svg.setAttribute("height", String(Math.round((size * 42) / 32)));
+  svg.style.display = "block";
+  svg.style.filter = "drop-shadow(0 2px 3px rgba(5,8,10,0.6))";
+
+  const path = document.createElementNS(svgNS, "path");
+  path.setAttribute("d", "M16 40.5S2 25.4 2 15.5A14 14 0 1 1 30 15.5C30 25.4 16 40.5 16 40.5Z");
+  path.setAttribute("fill", hollow ? "rgba(5,8,10,0.55)" : color);
+  path.setAttribute("stroke", color);
+  path.setAttribute("stroke-width", hollow ? "2.5" : "1.5");
+  svg.appendChild(path);
+
+  const hole = document.createElementNS(svgNS, "circle");
+  hole.setAttribute("cx", "16");
+  hole.setAttribute("cy", "15.5");
+  hole.setAttribute("r", "5.5");
+  hole.setAttribute("fill", hollow ? color : "#05080a");
+  hole.setAttribute("fill-opacity", hollow ? "0.9" : "1");
+  svg.appendChild(hole);
+
+  wrap.appendChild(svg);
+  return wrap;
+}
+
+// A distinct "live position" marker for mission replay — a radar-blip circle
+// rather than the teardrop pin shape used for the fixed START/DESTINATION
+// points, so a moving vessel token never reads as a third mission endpoint.
+function createVesselElement(color: string) {
+  const wrap = document.createElement("div");
+  wrap.style.pointerEvents = "none";
+  wrap.title = "Vessel position (mission replay)";
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("width", "18");
+  svg.setAttribute("height", "18");
+  svg.style.display = "block";
+  svg.style.filter = `drop-shadow(0 0 5px ${color}99)`;
+
+  const ring = document.createElementNS(svgNS, "circle");
+  ring.setAttribute("cx", "12");
+  ring.setAttribute("cy", "12");
+  ring.setAttribute("r", "10");
+  ring.setAttribute("fill", "none");
+  ring.setAttribute("stroke", color);
+  ring.setAttribute("stroke-width", "1.5");
+  ring.setAttribute("opacity", "0.55");
+  svg.appendChild(ring);
+
+  const core = document.createElementNS(svgNS, "circle");
+  core.setAttribute("cx", "12");
+  core.setAttribute("cy", "12");
+  core.setAttribute("r", "4.5");
+  core.setAttribute("fill", color);
+  svg.appendChild(core);
+
+  wrap.appendChild(svg);
+  return wrap;
 }
 
 function setLayerVisible(map: MapLibreMap, id: string, visible: boolean) {
@@ -255,6 +371,11 @@ export default function AntarcticMap({
   layerVisibility,
   seaIce,
   selectedRouteOptionId,
+  pickTarget,
+  onPickPoint,
+  draftStart,
+  draftDestination,
+  replayTimeHours = null,
 }: {
   route: RouteResponse | null;
   recalculatedRoute: RouteResponse | null;
@@ -264,6 +385,16 @@ export default function AntarcticMap({
   layerVisibility: LayerVisibility;
   seaIce: SeaIceGeoJSON | null;
   selectedRouteOptionId: string | null;
+  pickTarget: PickTarget;
+  onPickPoint: (point: MissionPoint) => void;
+  draftStart: MissionPoint | null;
+  draftDestination: MissionPoint | null;
+  // Mission-replay mode: when set, icebergs are drawn at their real
+  // interpolated position at this mission time (hours since departure)
+  // instead of their t=0 current_position, and a moving vessel marker is
+  // drawn along the real route waypoints. null/omitted (the default) is
+  // byte-for-byte the existing static behavior — this prop is additive.
+  replayTimeHours?: number | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -276,6 +407,17 @@ export default function AntarcticMap({
   useEffect(() => {
     onSelectIcebergRef.current = onSelectIceberg;
   });
+  // Mission-point picking: refs so the once-registered map listeners always see
+  // the latest target/callback without re-binding.
+  const pickTargetRef = useRef<PickTarget>(pickTarget);
+  const onPickPointRef = useRef(onPickPoint);
+  useEffect(() => {
+    pickTargetRef.current = pickTarget;
+    onPickPointRef.current = onPickPoint;
+  });
+  const draftStartMarkerRef = useRef<Marker | null>(null);
+  const draftDestinationMarkerRef = useRef<Marker | null>(null);
+  const replayVesselMarkerRef = useRef<Marker | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [center, setCenter] = useState<{ lat: number; lng: number }>({
     lat: INITIAL_CENTER[1],
@@ -303,15 +445,24 @@ export default function AntarcticMap({
     // Clicking a real iceberg marker selects it; the layer only exists (and is
     // only interactive/visible) once real route data has loaded and Icebergs
     // mode is active, so this listener is a no-op until then.
+    // While a mission point is being picked, iceberg markers are inert so the
+    // click is only ever interpreted as a coordinate pick.
     map.on("click", "iceberg-points-layer", (e) => {
+      if (pickTargetRef.current) return;
       const id = e.features?.[0]?.properties?.iceberg_id;
       if (typeof id === "string") onSelectIcebergRef.current(id);
     });
     map.on("mouseenter", "iceberg-points-layer", () => {
+      if (pickTargetRef.current) return;
       map.getCanvas().style.cursor = "pointer";
     });
     map.on("mouseleave", "iceberg-points-layer", () => {
-      map.getCanvas().style.cursor = "";
+      map.getCanvas().style.cursor = pickTargetRef.current ? "crosshair" : "";
+    });
+    map.on("click", (e) => {
+      if (!pickTargetRef.current) return;
+      const { lat, lng } = e.lngLat.wrap();
+      onPickPointRef.current({ lat, lon: lng });
     });
 
     // A container resize (e.g. the flex layout settling just after mount) can shift
@@ -350,8 +501,14 @@ export default function AntarcticMap({
     return () => {
       vesselMarkerRef.current?.remove();
       destinationMarkerRef.current?.remove();
+      draftStartMarkerRef.current?.remove();
+      draftDestinationMarkerRef.current?.remove();
+      replayVesselMarkerRef.current?.remove();
       vesselMarkerRef.current = null;
       destinationMarkerRef.current = null;
+      draftStartMarkerRef.current = null;
+      draftDestinationMarkerRef.current = null;
+      replayVesselMarkerRef.current = null;
       map.remove();
       mapRef.current = null;
     };
@@ -408,15 +565,38 @@ export default function AntarcticMap({
         paint: { "line-color": "#c3f2f4", "line-opacity": 0.55, "line-width": 1.5 },
       });
     }
-    // The 3 real route options (Route Intelligence panel) — subdued by
-    // default, the selected one highlighted amber by the effect below.
+    // The 3 real route options (Route Comparison panel), colored by the fixed
+    // Safety=green / Balanced=amber / Shortest=red mapping (`strategy_color`,
+    // baked into the feature properties above) — every option stays clearly
+    // visible even when the routes overlap, since each keeps its own color
+    // regardless of selection; only opacity/width change on selection (see
+    // the highlight effect below). A soft, low-opacity glow layer sits behind
+    // the crisp lines for a subtle halo, matching the iceberg glow treatment.
+    if (!map.getLayer("route-options-glow-layer")) {
+      map.addLayer({
+        id: "route-options-glow-layer",
+        type: "line",
+        source: "route-options",
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": ["get", "strategy_color"],
+          "line-opacity": 0.25,
+          "line-width": 7,
+          "line-blur": 4,
+        },
+      });
+    }
     if (!map.getLayer("route-options-layer")) {
       map.addLayer({
         id: "route-options-layer",
         type: "line",
         source: "route-options",
         layout: { "line-cap": "round", "line-join": "round" },
-        paint: { "line-color": "#7c8b90", "line-opacity": 0.35, "line-width": 1.2 },
+        paint: {
+          "line-color": ["get", "strategy_color"],
+          "line-opacity": 0.75,
+          "line-width": 2.5,
+        },
       });
     }
     // A soft, restrained halo beneath the iceberg marker — only sized up for
@@ -448,13 +628,17 @@ export default function AntarcticMap({
       });
     }
 
-    // Real vessel/start + destination glyph markers (◆ / ◎) from the route's
-    // first and last real waypoints.
+    // Real start/destination pin markers from the route's first and last real
+    // waypoints — these move automatically whenever a new route is generated,
+    // since they are re-derived from `route.waypoints` on every render here.
     const first = route.waypoints[0];
     const last = route.waypoints[route.waypoints.length - 1];
     if (first && last) {
       if (!vesselMarkerRef.current) {
-        vesselMarkerRef.current = new Marker({ element: createGlyphMarkerElement("◆", "#d99a5b"), anchor: "center" })
+        vesselMarkerRef.current = new Marker({
+          element: createPinElement(PIN_COLORS.start, "START"),
+          anchor: "bottom",
+        })
           .setLngLat([first.lon, first.lat])
           .addTo(map);
       } else {
@@ -462,8 +646,8 @@ export default function AntarcticMap({
       }
       if (!destinationMarkerRef.current) {
         destinationMarkerRef.current = new Marker({
-          element: createGlyphMarkerElement("◎", "#edf2f2"),
-          anchor: "center",
+          element: createPinElement(PIN_COLORS.destination, "DESTINATION"),
+          anchor: "bottom",
         })
           .setLngLat([last.lon, last.lat])
           .addTo(map);
@@ -473,13 +657,64 @@ export default function AntarcticMap({
     }
 
     // The container may not have finished settling into its final flex-computed
-    // size yet (e.g. right after mount) — resize before fitting so the bounds
-    // calculation uses the map's real, current dimensions. Snap instantly rather
-    // than animate: an eased transition needs no visual flourish here. Capped
-    // at FIT_MAX_ZOOM so the Antarctic/Southern Ocean context stays visible.
-    map.resize();
-    map.fitBounds(bounds, { padding: 64, animate: false, maxZoom: FIT_MAX_ZOOM });
+    // size yet (e.g. right after mount, or when this map sits in a deeper flex
+    // chain like the alternate presentation views) — a synchronous resize()
+    // here can still read a pre-layout size. Deferring one frame guarantees
+    // the browser has committed layout for the current DOM/CSS before MapLibre
+    // measures its container. Snap instantly rather than animate: an eased
+    // transition needs no visual flourish here. Capped at FIT_MAX_ZOOM so the
+    // Antarctic/Southern Ocean context stays visible.
+    const raf = requestAnimationFrame(() => {
+      map.resize();
+      map.fitBounds(bounds, { padding: 64, animate: false, maxZoom: FIT_MAX_ZOOM });
+    });
+    return () => cancelAnimationFrame(raf);
   }, [route, mapLoaded]);
+
+  // Mission replay: moves iceberg markers to their real interpolated position
+  // at the current mission-replay time, and draws/moves a distinct vessel
+  // marker along the real route waypoints. `replayTimeHours ?? 0` means this
+  // is a no-op whenever replay isn't active — t=0 clamps to exactly the same
+  // current_position the static effect above already drew, so nothing
+  // changes until a caller actually sets replayTimeHours.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded || !route) return;
+
+    const t = replayTimeHours ?? 0;
+    const icebergPoints: GeoJSON.FeatureCollection<GeoJSON.Point> = {
+      type: "FeatureCollection",
+      features: route.icebergs.map((ib) => {
+        const pos = interpolateIcebergPosition(ib, t);
+        return {
+          type: "Feature",
+          properties: { iceberg_id: ib.iceberg_id },
+          geometry: { type: "Point", coordinates: [pos.lon, pos.lat] },
+        };
+      }),
+    };
+    const icebergSource = map.getSource("iceberg-points") as GeoJSONSource | undefined;
+    icebergSource?.setData(icebergPoints);
+
+    if (replayTimeHours != null) {
+      const vesselPos = interpolateVesselPosition(route.waypoints, replayTimeHours);
+      if (vesselPos) {
+        if (!replayVesselMarkerRef.current) {
+          replayVesselMarkerRef.current = new Marker({
+            element: createVesselElement("#edf2f2"),
+            anchor: "center",
+          })
+            .setLngLat([vesselPos.lon, vesselPos.lat])
+            .addTo(map);
+        } else {
+          replayVesselMarkerRef.current.setLngLat([vesselPos.lon, vesselPos.lat]);
+        }
+      }
+    } else if (replayVesselMarkerRef.current) {
+      replayVesselMarkerRef.current.remove();
+      replayVesselMarkerRef.current = null;
+    }
+  }, [route, mapLoaded, replayTimeHours]);
 
   // Renders the real recalculated route (from a genuine backend call to
   // Niharika's update_predictions_and_recalculate) as a second, visually
@@ -615,14 +850,18 @@ export default function AntarcticMap({
     setLayerVisible(map, "route-line-layer", layerVisibility.initialRoute);
     setLayerVisible(map, "direction-arrows-layer", activeModule === "map" && layerVisibility.initialRoute);
     setLayerVisible(map, "route-options-layer", activeModule === "routes");
-    setLayerVisible(map, "recalculated-route-line-layer", layerVisibility.adaptiveRoute);
+    setLayerVisible(map, "route-options-glow-layer", activeModule === "routes");
+    // Also gated on the adaptive route existing, so resetting it (new mission)
+    // removes the previous mission's line instead of leaving it drawn.
+    setLayerVisible(map, "recalculated-route-line-layer", layerVisibility.adaptiveRoute && !!recalculatedRoute);
     setLayerVisible(map, "sea-ice-layer", activeModule === "sea-ice" && layerVisibility.seaIce);
   }, [activeModule, layerVisibility, mapLoaded, route, recalculatedRoute, seaIce]);
 
   // Highlights the selected iceberg's marker/trajectory and draws a real,
-  // correctly-derived uncertainty envelope (radius = spatial_uncertainty_km)
-  // around its current position. Nothing here claims to be an exact probability
-  // contour — it is a restrained visual radius derived from the real API value.
+  // correctly-derived uncertainty ENVELOPE — one circle per real predicted
+  // position, not just current_position — so the operator sees how the
+  // positional-radius heuristic grows along the actual forecast track.
+  // Nothing here claims to be an exact probability contour.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded || !map.getSource("iceberg-points")) return;
@@ -632,8 +871,8 @@ export default function AntarcticMap({
       ? (route?.icebergs.find((ib) => ib.iceberg_id === selectedIcebergId) ?? null)
       : null;
 
-    const circleData: GeoJSON.Feature<GeoJSON.Polygon> | GeoJSON.FeatureCollection = selected
-      ? buildUncertaintyCircle(selected.current_position.lat, selected.current_position.lon, selected.spatial_uncertainty_km)
+    const circleData: GeoJSON.FeatureCollection<GeoJSON.Polygon> = selected
+      ? buildUncertaintyEnvelope(selected)
       : { type: "FeatureCollection", features: [] };
 
     const existingUncertainty = map.getSource("iceberg-uncertainty") as GeoJSONSource | undefined;
@@ -693,37 +932,84 @@ export default function AntarcticMap({
     ]);
   }, [selectedIcebergId, route, mapLoaded]);
 
+  // Crosshair cursor while a mission point is being picked.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+    map.getCanvas().style.cursor = pickTarget ? "crosshair" : "";
+  }, [pickTarget, mapLoaded]);
+
+  // Draft mission pins — the operator's not-yet-generated inputs. Same pin
+  // shape as the committed markers (so the shape stays consistent), but
+  // hollow/translucent, so "draft" reads as "this pin, provisional" rather
+  // than a different symbol. These move immediately on every keystroke/pick,
+  // before Generate Route is ever pressed.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoaded) return;
+
+    const sync = (ref: { current: Marker | null }, point: MissionPoint | null, color: string, label: string) => {
+      if (!point) {
+        ref.current?.remove();
+        ref.current = null;
+        return;
+      }
+      if (!ref.current) {
+        ref.current = new Marker({ element: createPinElement(color, label, true), anchor: "bottom" })
+          .setLngLat([point.lon, point.lat])
+          .addTo(map);
+      } else {
+        ref.current.setLngLat([point.lon, point.lat]);
+      }
+    };
+
+    sync(draftStartMarkerRef, draftStart, PIN_COLORS.start, "START");
+    sync(draftDestinationMarkerRef, draftDestination, PIN_COLORS.destination, "DESTINATION");
+  }, [draftStart, draftDestination, mapLoaded]);
+
   // Highlights whichever real route option the user picked in the Route
-  // Intelligence panel — same real waypoint geometry already drawn on the
-  // route-options layer, just restyled brighter/thicker for that one
-  // feature. No new data, no reconstruction.
+  // Comparison panel — same real waypoint geometry already drawn on the
+  // route-options layer, just emphasized (thicker, fuller opacity, a
+  // brighter glow) for that one feature. Color itself is never touched here:
+  // each strategy keeps its own fixed color whether selected or not, so a
+  // route never appears to change identity on selection — only its emphasis
+  // does. No new data, no reconstruction.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoaded || !map.getLayer("route-options-layer")) return;
 
     const selectedId = selectedRouteOptionId ?? "";
-    map.setPaintProperty("route-options-layer", "line-color", [
-      "case",
-      ["==", ["get", "route_id"], selectedId],
-      "#d99a5b",
-      "#7c8b90",
-    ]);
+
     map.setPaintProperty("route-options-layer", "line-opacity", [
       "case",
       ["==", ["get", "route_id"], selectedId],
-      0.95,
-      0.35,
+      1,
+      0.7,
     ]);
     map.setPaintProperty("route-options-layer", "line-width", [
       "case",
       ["==", ["get", "route_id"], selectedId],
-      3,
-      1.2,
+      4,
+      2.2,
     ]);
+    if (map.getLayer("route-options-glow-layer")) {
+      map.setPaintProperty("route-options-glow-layer", "line-opacity", [
+        "case",
+        ["==", ["get", "route_id"], selectedId],
+        0.45,
+        0.18,
+      ]);
+      map.setPaintProperty("route-options-glow-layer", "line-width", [
+        "case",
+        ["==", ["get", "route_id"], selectedId],
+        11,
+        6,
+      ]);
+    }
   }, [selectedRouteOptionId, route, mapLoaded]);
 
   return (
-    <div className="relative min-h-0 flex-1 overflow-hidden rounded-lg border border-line bg-abyss">
+    <div className="shadow-panel relative min-h-0 flex-1 overflow-hidden rounded-lg border border-line bg-abyss">
       <div ref={containerRef} className="h-full w-full" />
 
       {/* subtle cyan vignette to blend the basemap into the HUD frame */}
@@ -755,7 +1041,7 @@ export default function AntarcticMap({
           type="button"
           aria-label="Zoom in"
           onClick={() => mapRef.current?.zoomIn()}
-          className="flex h-9 w-9 items-center justify-center rounded border border-line bg-abyss-raised/80 text-frost transition-colors hover:border-ice hover:text-ice"
+          className="shadow-panel flex h-9 w-9 items-center justify-center rounded border border-line bg-abyss-raised/80 text-frost backdrop-blur-sm transition-all hover:border-ice hover:text-ice hover:shadow-glow-ice-sm"
         >
           <PlusIcon className="h-4 w-4" />
         </button>
@@ -763,7 +1049,7 @@ export default function AntarcticMap({
           type="button"
           aria-label="Zoom out"
           onClick={() => mapRef.current?.zoomOut()}
-          className="flex h-9 w-9 items-center justify-center rounded border border-line bg-abyss-raised/80 text-frost transition-colors hover:border-ice hover:text-ice"
+          className="shadow-panel flex h-9 w-9 items-center justify-center rounded border border-line bg-abyss-raised/80 text-frost backdrop-blur-sm transition-all hover:border-ice hover:text-ice hover:shadow-glow-ice-sm"
         >
           <MinusIcon className="h-4 w-4" />
         </button>
@@ -773,32 +1059,31 @@ export default function AntarcticMap({
           onClick={() =>
             mapRef.current?.flyTo({ center: INITIAL_CENTER, zoom: INITIAL_ZOOM, essential: true })
           }
-          className="flex h-9 w-9 items-center justify-center rounded border border-line bg-abyss-raised/80 text-frost transition-colors hover:border-ice hover:text-ice"
+          className="shadow-panel flex h-9 w-9 items-center justify-center rounded border border-line bg-abyss-raised/80 text-frost backdrop-blur-sm transition-all hover:border-ice hover:text-ice hover:shadow-glow-ice-sm"
         >
           <LocateIcon className="h-4 w-4" />
         </button>
       </div>
 
-      {(route || seaIce) && (
+      {pickTarget && (
+        <div className="shadow-glow-ice-sm pointer-events-none absolute left-1/2 top-5 -translate-x-1/2 rounded border border-ice/50 bg-abyss-raised/90 px-4 py-2 font-mono text-[10px] uppercase tracking-mission text-ice backdrop-blur-md">
+          Click the map to place {pickTarget === "start" ? "start" : "destination"} · Esc to cancel
+        </div>
+      )}
+
+      {(route || seaIce || draftStart || draftDestination) && (
         <MapLegend
           mode={activeModule}
           hasAdaptiveRoute={!!recalculatedRoute}
           seaIce={seaIce}
           hasSelectedRouteOption={!!selectedRouteOptionId}
+          hasRoute={!!route}
+          hasDraftStart={!!draftStart}
+          hasDraftDestination={!!draftDestination}
         />
       )}
 
-      <div className="pointer-events-none absolute bottom-4 left-5 flex items-center gap-2 font-mono text-[10px] text-mist">
-        <span>0</span>
-        <span className="h-px w-10 bg-mist/60" />
-        <span>250</span>
-        <span className="h-px w-10 bg-mist/60" />
-        <span>500</span>
-        <span className="h-px w-10 bg-mist/60" />
-        <span>1,000 KM</span>
-      </div>
-
-      <div className="pointer-events-none absolute bottom-4 right-4 rounded border border-line bg-abyss-raised/80 px-4 py-2.5 font-mono text-[11px] text-mist">
+      <div className="shadow-panel pointer-events-none absolute bottom-4 right-4 rounded border border-line bg-abyss-raised/80 px-4 py-2.5 font-mono text-[11px] text-mist backdrop-blur-sm">
         <p>LAT&nbsp;&nbsp;&nbsp;{formatCoord(center.lat, "N", "S")}</p>
         <p>LON&nbsp;&nbsp;{formatCoord(center.lng, "E", "W")}</p>
         <p>

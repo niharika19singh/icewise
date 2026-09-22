@@ -83,7 +83,7 @@ class NavigationEngine:
             self.vessel.risk_tolerance_factor = 0.0
             optimizer = RouteOptimizer(graph=self.graph, vessel=self.vessel)
             path_coords, _ = optimizer.find_route_astar()
-            metrics, waypoints = calculate_route_metrics(
+            metrics, waypoints, path_risks = calculate_route_metrics(
                 path=path_coords,
                 vessel=self.vessel,
                 risk_engine=self.risk_engine
@@ -95,6 +95,7 @@ class NavigationEngine:
                 metrics=metrics,
                 algorithm_used="Shortest-Path Baseline",
                 notes=["Baseline route representing unconstrained shortest physical path."],
+                waypoint_risks=path_risks,
             )
         finally:
             self.vessel.risk_tolerance_factor = orig_risk_tol
@@ -125,7 +126,7 @@ class NavigationEngine:
         else:
             raise ValueError(f"Unsupported algorithm '{algorithm}'. Choose 'A*' or 'Dijkstra'.")
 
-        metrics, waypoints = calculate_route_metrics(
+        metrics, waypoints, path_risks = calculate_route_metrics(
             path=path_coords,
             vessel=self.vessel,
             risk_engine=self.risk_engine
@@ -150,6 +151,7 @@ class NavigationEngine:
             algorithm_used=algo_name,
             recalculated=recalculated,
             notes=notes,
+            waypoint_risks=path_risks,
         )
 
         if include_comparison:
@@ -161,6 +163,35 @@ class NavigationEngine:
 
         return self.current_route_result
 
+
+    def compute_time_aware_route(
+        self, algorithm: str = "A*", include_comparison: bool = False
+    ) -> NavigationRouteResult:
+        """
+        Computes a route using a time-aware risk grid (see
+        NavigationGridGraph.compute_time_aware_node_risk) instead of the static
+        worst-case forecast envelope compute_route() uses — path SELECTION, not
+        just the reported metrics, now depends on each cell's estimated arrival
+        time. Additive: swaps the graph's node_risk for the duration of this one
+        search and restores it afterward, so it never affects compute_route(),
+        compute_baseline_route(), or any other engine state.
+        """
+        original_node_risk = self.graph.node_risk
+        try:
+            self.graph.node_risk = self.graph.compute_time_aware_node_risk(
+                self.vessel.start_point, self.vessel.cruise_speed_knots
+            )
+            result = self.compute_route(algorithm=algorithm, recalculated=False, include_comparison=include_comparison)
+            result.notes.append(
+                "Time-aware routing: node risk evaluated at each cell's straight-line ETA "
+                "from the start point at cruise speed, instead of the worst-case-ever "
+                "forecast envelope the primary route uses. This is a bounded lower-bound "
+                "arrival-time approximation (not the actual path-dependent arrival time, "
+                "and not a time-expanded-graph search)."
+            )
+            return result
+        finally:
+            self.graph.node_risk = original_node_risk
 
     def update_predictions_and_recalculate(self,
                                            new_iceberg_predictions: List[IcebergPrediction],

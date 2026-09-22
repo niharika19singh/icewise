@@ -10,7 +10,7 @@ from icewise.risk_engine import haversine_distance_nm, ProbabilisticRiskEngine
 
 def calculate_route_metrics(path: List[Tuple[float, float]],
                             vessel: VesselProfile,
-                            risk_engine: ProbabilisticRiskEngine) -> Tuple[RouteMetrics, List[Waypoint]]:
+                            risk_engine: ProbabilisticRiskEngine) -> Tuple[RouteMetrics, List[Waypoint], List[float]]:
     """
     Computes distance, transit time, fuel consumption, and risk statistics for a path
     of (lat, lon) coordinates.
@@ -20,7 +20,10 @@ def calculate_route_metrics(path: List[Tuple[float, float]],
     iceberg to its predicted position at the moment the vessel actually arrives at that
     cell — not the t=0 snapshot.
 
-    Returns RouteMetrics and list of Waypoint objects with assigned cumulative ETA.
+    Returns RouteMetrics, the list of Waypoint objects with assigned cumulative ETA,
+    and the real per-waypoint risk score list (path_risks) used to derive mean/max —
+    exposed (not discarded) so callers can show risk(lat, lon, ETA) evolving along the
+    route, e.g. for a mission replay, instead of only the two aggregate scalars.
     """
     if not path:
         raise ValueError("Cannot calculate metrics for empty path")
@@ -80,7 +83,7 @@ def calculate_route_metrics(path: List[Tuple[float, float]],
         waypoint_count=len(waypoints),
     )
 
-    return metrics, waypoints
+    return metrics, waypoints, path_risks
 
 
 def calculate_route_comparison(

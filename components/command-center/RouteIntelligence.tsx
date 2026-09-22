@@ -1,15 +1,31 @@
-import type { RouteResponse, RouteOption } from "./types";
+import ErrorNotice from "./ErrorNotice";
+import WhyThisRoute from "./WhyThisRoute";
+import MissionThreatTimeline from "./MissionThreatTimeline";
+import { routeStrategyColor, routeStrategyDisplayName } from "./routeStyle";
+import { isRouteOption, type RouteResponse, type RouteOptionResult, type OperatorError } from "./types";
+
+// Small colored SVG dot — the route strategy's color is the primary visual
+// identifier for each row, per a real SVG icon rather than an emoji.
+// Exported so WhyThisRoute.tsx and MissionThreatTimeline.tsx reuse the same
+// dot instead of duplicating the SVG.
+export function StrategyDot({ color }: { color: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 8 8" className="h-2.5 w-2.5 shrink-0">
+      <circle cx="4" cy="4" r="4" fill={color} />
+    </svg>
+  );
+}
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-line/60 py-2 last:border-b-0">
       <span className="font-mono text-[10px] uppercase tracking-mission text-mist">{label}</span>
-      <span className="font-mono text-sm text-frost">{value}</span>
+      <span className="min-w-0 text-right font-mono text-sm text-frost [overflow-wrap:anywhere]">{value}</span>
     </div>
   );
 }
 
-function RoutePlanStats({ route }: { route: RouteResponse }) {
+export function RoutePlanStats({ route }: { route: RouteResponse }) {
   return (
     <div>
       <Stat label="Route ID" value={route.route_id} />
@@ -18,9 +34,9 @@ function RoutePlanStats({ route }: { route: RouteResponse }) {
         label="Distance"
         value={`${route.metrics.total_distance_km.toFixed(1)} km / ${route.metrics.total_distance_nm.toFixed(1)} nm`}
       />
-      <Stat label="ETA" value={`${route.metrics.estimated_time_hours.toFixed(1)} h`} />
+      <Stat label="Est. Transit" value={`${route.metrics.estimated_time_hours.toFixed(1)} h`} />
       <Stat
-        label="Fuel"
+        label="Est. Fuel"
         value={`${route.metrics.estimated_fuel_tons.toFixed(2)} t ($${route.metrics.estimated_fuel_cost_usd.toFixed(0)})`}
       />
       <Stat label="Mean Risk" value={`${(route.metrics.mean_risk_score * 100).toFixed(2)}%`} />
@@ -31,64 +47,113 @@ function RoutePlanStats({ route }: { route: RouteResponse }) {
   );
 }
 
-// The 3 real route options (backend/routing/main.py -> _build_route_options):
-// same real risk engine / A* search, each computed independently at a
-// different real risk_tolerance_factor. Selecting one highlights its actual
-// waypoint geometry on the map — nothing here is reconstructed client-side.
+// Route Comparison: the 3 real route options (backend/routing/main.py ->
+// _build_route_options) — same real risk engine / A* search, each computed
+// independently at a different real risk_tolerance_factor. Selecting one
+// highlights its actual waypoint geometry on the map — nothing here is
+// reconstructed client-side. Distance, time and risk are read directly off
+// each option's own `metrics`; only the color/display-name per strategy
+// (routeStyle.ts) is a fixed, cosmetic mapping — never the numbers.
+//
+// Each card is two lines rather than one strict 4-column row: the 340px
+// right panel is too narrow to fit a full strategy name plus three numeric
+// columns on one line without truncating the name. Route + Risk (the
+// headline comparison figure) share the top line; Distance/Est. Time/Est.
+// Fuel sit on a smaller line below — all four values from the spec are still
+// shown, just not force-fit into aligned table columns.
 function RouteOptionsList({
   options,
   selectedId,
   onSelect,
 }: {
-  options: RouteOption[];
+  options: RouteOptionResult[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
 }) {
   return (
     <div className="mt-5 border-t border-line/60 pt-4">
-      <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">Route Options</p>
+      <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">Route Comparison</p>
       <p className="mt-1 font-mono text-[9px] uppercase tracking-mission text-mist/60">
         Same risk engine, different risk tolerance — select to highlight on map
       </p>
-      <div className="mt-2 flex flex-col gap-2">
+
+      <div className="mt-3 flex items-baseline justify-between px-2.5 font-mono text-[9px] uppercase tracking-mission text-mist/50">
+        <span>Route</span>
+        <span>Risk</span>
+      </div>
+
+      <div className="mt-1.5 flex flex-col gap-1.5">
         {options.map((opt) => {
+          const color = routeStrategyColor(opt.label);
+          const name = routeStrategyDisplayName(opt.label);
+
+          // The backend reports a strategy it could not solve in-band, without a
+          // route. Show that honestly instead of a selectable route.
+          if (!isRouteOption(opt)) {
+            return (
+              <div
+                key={opt.label}
+                className="rounded border border-line/60 bg-abyss/40 py-2 pl-2.5 pr-3"
+                style={{ borderLeftColor: color, borderLeftWidth: 3, opacity: 0.75 }}
+              >
+                <span className="flex items-center gap-2 font-mono text-xs uppercase tracking-mission text-frost">
+                  <StrategyDot color={color} />
+                  {name}
+                </span>
+                <p className="mt-1 font-body text-[11px] leading-snug text-vessel">
+                  {opt.error === "NO_ROUTE_FOUND"
+                    ? "No safe route was found for this strategy."
+                    : "This strategy could not be computed."}
+                </p>
+                {opt.detail && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer font-mono text-[9px] uppercase tracking-mission text-mist/70">
+                      Service details
+                    </summary>
+                    <p className="mt-1 break-words font-mono text-[10px] leading-snug text-mist/70">
+                      {opt.error} — {opt.detail.slice(0, 300)}
+                    </p>
+                  </details>
+                )}
+              </div>
+            );
+          }
+
           const isSelected = opt.route_id === selectedId;
           const isCurrentDefault = opt.label === "Balanced";
           return (
             <button
               key={opt.route_id}
               type="button"
+              aria-pressed={isSelected}
               onClick={() => onSelect(isSelected ? null : opt.route_id)}
-              className={`rounded border px-3 py-2 text-left transition-colors ${
-                isSelected ? "border-ice bg-ice/10" : "border-line/60 bg-abyss/40 hover:border-ice/40"
+              style={{
+                borderLeftColor: color,
+                borderLeftWidth: 3,
+                boxShadow: isSelected ? `0 0 0 1px ${color}66, 0 0 16px -6px ${color}` : undefined,
+              }}
+              className={`rounded border py-2 pl-2.5 pr-3 text-left transition-colors ${
+                isSelected ? "border-line bg-abyss/70" : "border-line/60 bg-abyss/40 hover:bg-abyss/60"
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-xs uppercase tracking-mission text-frost">
-                  {opt.label}
-                  {isCurrentDefault && <span className="ml-1.5 normal-case text-mist">(current default)</span>}
+                <span className="flex min-w-0 items-center gap-2 font-mono text-xs uppercase tracking-mission text-frost">
+                  <StrategyDot color={color} />
+                  <span className="truncate">{name}</span>
+                  {isCurrentDefault && (
+                    <span className="shrink-0 normal-case text-mist/60">(default)</span>
+                  )}
                 </span>
-                {isSelected && (
-                  <span className="shrink-0 font-mono text-[9px] uppercase tracking-mission text-ice">
-                    Selected
-                  </span>
-                )}
+                <span className="shrink-0 font-mono text-xs font-medium" style={{ color }}>
+                  {opt.metrics.mean_risk_score.toFixed(3)}
+                </span>
               </div>
-              <div className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 font-mono text-[10px] text-mist">
+              <div className="mt-1 flex items-center justify-between gap-2 font-mono text-[10px] text-mist">
                 <span>
-                  Dist <span className="text-frost">{opt.metrics.total_distance_km.toFixed(1)} km</span>
+                  {opt.metrics.total_distance_km.toFixed(1)} km · {opt.metrics.estimated_time_hours.toFixed(1)} h
                 </span>
-                <span>
-                  Time <span className="text-frost">{opt.metrics.estimated_time_hours.toFixed(1)} h</span>
-                </span>
-                <span>
-                  Fuel{" "}
-                  <span className="text-frost">
-                    {opt.metrics.estimated_fuel_tons.toFixed(2)} t (${opt.metrics.estimated_fuel_cost_usd.toFixed(0)})
-                  </span>
-                </span>
-                <span>
-                  Mean Risk <span className="text-frost">{(opt.metrics.mean_risk_score * 100).toFixed(2)}%</span>
+                <span className="normal-case text-mist/60">
+                  Est. Fuel {opt.metrics.estimated_fuel_tons.toFixed(2)} t (${opt.metrics.estimated_fuel_cost_usd.toFixed(0)})
                 </span>
               </div>
             </button>
@@ -175,18 +240,21 @@ export default function RouteIntelligence({
   onRecalculate,
   selectedRouteOptionId,
   onSelectRouteOption,
+  busy,
 }: {
   route: RouteResponse;
   recalculatedRoute: RouteResponse | null;
   recalculating: boolean;
-  recalculateError: string | null;
+  recalculateError: OperatorError | null;
   onRecalculate: () => void;
   selectedRouteOptionId: string | null;
   onSelectRouteOption: (id: string | null) => void;
+  // A new route is being generated — recalculating the old one would be wasted.
+  busy: boolean;
 }) {
   return (
     <div className="mt-4 flex flex-col">
-      <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">Initial Plan</p>
+      <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">Original Route</p>
       <div className="mt-2">
         <RoutePlanStats route={route} />
       </div>
@@ -199,20 +267,31 @@ export default function RouteIntelligence({
         />
       )}
 
+      <WhyThisRoute route={route} selectedRouteOptionId={selectedRouteOptionId} />
+      <MissionThreatTimeline route={route} selectedRouteOptionId={selectedRouteOptionId} />
+
       <button
         type="button"
         onClick={onRecalculate}
-        disabled={recalculating}
-        className="mt-4 rounded border border-ice/40 bg-ice/5 py-2.5 font-mono text-xs uppercase tracking-mission text-ice transition-colors hover:border-ice hover:bg-ice/10 disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={recalculating || busy}
+        className="mt-4 rounded border border-ice/40 bg-ice/5 py-2.5 font-mono text-xs uppercase tracking-mission text-ice transition-all hover:border-ice hover:bg-ice/10 hover:shadow-glow-ice-sm disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
       >
         {recalculating ? "Recalculating…" : "Recalculate Route"}
       </button>
-      {recalculateError && <p className="mt-2 font-body text-xs text-mist">{recalculateError}</p>}
+      {recalculating && (
+        <p role="status" className="mt-2 font-mono text-[10px] leading-snug tracking-mission text-ice">
+          Recalculating — the original route stays on the map.
+        </p>
+      )}
+      {recalculateError && <ErrorNotice error={recalculateError} className="mt-2" />}
 
       {recalculatedRoute && (
         <>
           <div className="mt-5 border-t border-line/60 pt-4">
-            <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">Adaptive Re-Route</p>
+            <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">Adaptive Route (Recalculated)</p>
+            <p className="mt-1 font-mono text-[9px] uppercase tracking-mission text-mist/60">
+              Replay update — each iceberg&apos;s latest recorded observation in the dataset
+            </p>
             <div className="mt-2">
               <RoutePlanStats route={recalculatedRoute} />
             </div>
@@ -222,7 +301,7 @@ export default function RouteIntelligence({
 
           <div className="mt-5 border-t border-line/60 pt-4">
             <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">
-              Initial Plan | Adaptive Re-Route
+              Original Route | Adaptive Route
             </p>
             <div className="mt-2">
               <ComparisonRow
@@ -233,7 +312,7 @@ export default function RouteIntelligence({
                 decimals={1}
               />
               <ComparisonRow
-                label="ETA"
+                label="Transit"
                 a={route.metrics.estimated_time_hours}
                 b={recalculatedRoute.metrics.estimated_time_hours}
                 unit=" h"

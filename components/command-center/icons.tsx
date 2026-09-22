@@ -1,7 +1,9 @@
 // Minimal inline icon set for the Command Center shell — matches ArrowIcon's
 // stroke-based style (no icon library needed for a handful of glyphs).
 
-type IconProps = { className?: string };
+import type { CSSProperties } from "react";
+
+type IconProps = { className?: string; style?: CSSProperties };
 
 export function MapIcon({ className }: IconProps) {
   return (
@@ -98,6 +100,15 @@ export function PlayIcon({ className }: IconProps) {
   );
 }
 
+export function PauseIcon({ className }: IconProps) {
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" fill="currentColor" className={className}>
+      <rect x="4" y="3" width="3" height="10" rx="0.5" />
+      <rect x="9" y="3" width="3" height="10" rx="0.5" />
+    </svg>
+  );
+}
+
 export function BellIcon({ className }: IconProps) {
   return (
     <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -140,11 +151,32 @@ export function EngineIcon({ className }: IconProps) {
   );
 }
 
+export function ClockIcon({ className }: IconProps) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3.5 2" />
+    </svg>
+  );
+}
+
 export function EyeIcon({ className }: IconProps) {
   return (
     <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12Z" />
       <circle cx="12" cy="12" r="2.5" />
+    </svg>
+  );
+}
+
+// Classic map-pin silhouette (teardrop + circular "hole") — used for the
+// Start/Destination legend swatches and the Mission Planner's point rows so
+// they match the real map markers instead of generic glyphs.
+export function PinIcon({ className, style }: IconProps) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="currentColor" className={className} style={style}>
+      <path d="M12 22s7.5-7.05 7.5-12.5a7.5 7.5 0 1 0-15 0C4.5 14.95 12 22 12 22Z" />
+      <circle cx="12" cy="9.5" r="2.75" fill="#05080a" />
     </svg>
   );
 }

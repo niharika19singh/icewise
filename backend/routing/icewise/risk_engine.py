@@ -122,32 +122,64 @@ class ProbabilisticRiskEngine:
         combined_iceberg_risk = 1.0 - non_collision_prob
         return min(1.0, max(0.0, combined_iceberg_risk))
 
-    def get_sea_ice_concentration(self, lat: float, lon: float) -> float:
+    # A real observation is only used if it lies within this many degrees (planar)
+    # of the query point. Beyond it the uniform default concentration applies —
+    # the engine never extrapolates or interpolates sea ice past real cells.
+    _ICE_NEIGHBOUR_RADIUS_DEG = 0.2
+
+    def _ice_index(self) -> Dict[Tuple[int, int], List[Tuple[float, float, float]]]:
+        """Lazy spatial hash of the observed cells, so lookups do not scan every cell."""
+        cells = self.environmental_data.ice_concentration_map
+        cached = getattr(self, "_ice_index_cache", None)
+        if cached is None or cached[0] != len(cells):
+            size = self._ICE_NEIGHBOUR_RADIUS_DEG
+            index: Dict[Tuple[int, int], List[Tuple[float, float, float]]] = {}
+            for (k_lat, k_lon), conc in cells.items():
+                index.setdefault((math.floor(k_lat / size), math.floor(k_lon / size)), []).append((k_lat, k_lon, conc))
+            cached = (len(cells), index)
+            self._ice_index_cache = cached
+        return cached[1]
+
+    def sea_ice_observation_at(self, lat: float, lon: float) -> Optional[float]:
         """
-        Retrieves or interpolates sea-ice concentration fraction (0.0 to 1.0) at (lat, lon).
+        Real observed sea-ice concentration at, or within 0.2° of, (lat, lon);
+        None when there is no real observation nearby (the caller then falls back
+        to the default concentration). This is the single place that decides
+        whether a value is observed or defaulted, so callers can report coverage
+        truthfully.
         """
         if not self.environmental_data or not self.environmental_data.ice_concentration_map:
-            return self.environmental_data.default_ice_concentration if self.environmental_data else 0.05
+            return None
 
         # 1. Direct or rounded key lookup
         grid_key = (round(lat, 2), round(lon, 2))
         if grid_key in self.environmental_data.ice_concentration_map:
             return self.environmental_data.ice_concentration_map[grid_key]
 
-        # 2. Nearest neighbor lookup within 0.2° coordinate radius fallback
-        best_dist_sq = 0.04  # 0.2° squared radius
+        # 2. Nearest observed cell within the radius (same rule as before, via a spatial hash)
+        size = self._ICE_NEIGHBOUR_RADIUS_DEG
+        index = self._ice_index()
+        cx, cy = math.floor(lat / size), math.floor(lon / size)
+        best_dist_sq = size * size
         best_val = None
-        for (k_lat, k_lon), conc in self.environmental_data.ice_concentration_map.items():
-            dist_sq = (lat - k_lat) ** 2 + (lon - k_lon) ** 2
-            if dist_sq < best_dist_sq:
-                best_dist_sq = dist_sq
-                best_val = conc
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                for k_lat, k_lon, conc in index.get((cx + dx, cy + dy), ()):
+                    dist_sq = (lat - k_lat) ** 2 + (lon - k_lon) ** 2
+                    if dist_sq < best_dist_sq:
+                        best_dist_sq = dist_sq
+                        best_val = conc
+        return best_val
 
-        if best_val is not None:
-            return best_val
-
-        # Fallback to default concentration
-        return self.environmental_data.default_ice_concentration
+    def get_sea_ice_concentration(self, lat: float, lon: float) -> float:
+        """
+        Sea-ice concentration fraction (0.0 to 1.0) at (lat, lon): the real observed
+        value where one exists nearby, otherwise the uniform default concentration.
+        """
+        observed = self.sea_ice_observation_at(lat, lon)
+        if observed is not None:
+            return observed
+        return self.environmental_data.default_ice_concentration if self.environmental_data else 0.05
 
     def calculate_total_risk(self,
                              lat: float,

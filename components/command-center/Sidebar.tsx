@@ -29,7 +29,7 @@ export default function Sidebar({
   onSelect: (id: string) => void;
 }) {
   return (
-    <nav className="flex w-20 shrink-0 flex-col items-center justify-between rounded-lg border border-line bg-abyss-raised/60 py-4">
+    <nav className="shadow-panel flex w-20 shrink-0 flex-col items-center justify-between rounded-lg border border-line bg-abyss-raised/60 py-4 backdrop-blur-md">
       <ul className="flex flex-col items-stretch gap-1">
         {navItems.map(({ id, label, icon: Icon }) => {
           const isActive = active === id;
@@ -40,7 +40,9 @@ export default function Sidebar({
                 onClick={() => onSelect(id)}
                 aria-current={isActive}
                 className={`${navButtonClass} ${
-                  isActive ? "border-ice bg-ice/10 text-ice" : "border-transparent text-mist hover:text-ice"
+                  isActive
+                    ? "shadow-glow-ice-sm border-ice bg-ice/10 text-ice-bright"
+                    : "border-transparent text-mist hover:text-ice"
                 }`}
               >
                 <Icon className="h-4.5 w-4.5" />

@@ -353,7 +353,7 @@ class TestTemporalMetrics:
         risk_engine = ProbabilisticRiskEngine(iceberg_predictions=preds)
 
         path = [(-77.0, -42.0), (-76.5, -41.5), (-76.0, -41.0), (-75.5, -40.5), (-74.5, -40.0)]
-        metrics, waypoints = calculate_route_metrics(path, vessel, risk_engine)
+        metrics, waypoints, path_risks = calculate_route_metrics(path, vessel, risk_engine)
 
         # Verify each waypoint's time offset is used correctly in path_risks computation
         # (We just verify the function runs without error and time offsets are set)
@@ -422,7 +422,8 @@ class TestAPIErrorHandling:
         Oversized cross-region corridor must be rejected immediately with
         422 CORRIDOR_TOO_LARGE before any grid is built, preventing free-tier
         compute timeouts.
-        lat_span=13°, lon_span=30° → ~(14/0.1+1)*(31/0.1+1) ≈ 43,772 nodes > 10,000 limit.
+        lat_span=13°, lon_span=30° → ~(15/0.05+1)*(32/0.05+1) ≈ 193,000 nodes at the engine's
+        real 0.05° resolution, far above the guard's limit (api._MAX_GRID_NODES).
         """
         resp = client.post("/api/route", json={
             "vessel_id": "V1",
@@ -440,7 +441,7 @@ class TestAPIErrorHandling:
     def test_corridor_at_limit_succeeds(self, client):
         """
         The standard Weddell demo corridor (lat_span=2.5°, lon_span=2.0°,
-        ~1,900 nodes) must still pass the corridor check without error.
+        ~7,400 nodes at 0.05°) must still pass the corridor check without error.
         """
         # Just test that the corridor check does NOT reject this — the routing
         # itself may still need the CSV so we only assert it gets past validation
