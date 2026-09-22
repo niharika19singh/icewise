@@ -47,8 +47,7 @@ print("Icebergs:", df["iceberg_id"].nunique())
 # 4. LIMIT DATASET FOR INITIAL TEST
 # --------------------------------------------------
 #
-# Start with 50 icebergs.
-# Once the matching works, we can expand it.
+# Start with the 50 longest tracks.
 # --------------------------------------------------
 
 icebergs = (
@@ -69,16 +68,23 @@ print("Selected observations:", len(df))
 
 
 # --------------------------------------------------
-# 5. LOAD ERA5
+# 5. LOAD ERA5 DATASETS
 # --------------------------------------------------
 
-print("\nLoading ERA5...")
+print("\nLoading ERA5 datasets...")
 
-era5 = xr.open_dataset(
+# General Antarctic ERA5 dataset
+era5_general = xr.open_dataset(
     "era5_antarctic_wind_2020.nc"
+).rename(
+    {"valid_time": "timestamp"}
 )
 
-era5 = era5.rename(
+# Correct Weddell Sea ERA5 dataset
+# Covers negative longitudes from -70 to -25
+era5_weddell = xr.open_dataset(
+    "era5_weddell_wind_2020.nc"
+).rename(
     {"valid_time": "timestamp"}
 )
 
@@ -89,29 +95,126 @@ era5 = era5.rename(
 
 print("Matching ERA5 wind...")
 
-matched = era5.sel(
-    timestamp=xr.DataArray(
-        df["timestamp"].values,
-        dims="obs"
-    ),
-    latitude=xr.DataArray(
-        df["latitude"].values,
-        dims="obs"
-    ),
-    longitude=xr.DataArray(
-        df["longitude"].values,
-        dims="obs"
-    ),
-    method="nearest"
+# Create empty columns first
+df["wind_u10"] = np.nan
+df["wind_v10"] = np.nan
+
+
+# --------------------------------------------------
+# 6A. IDENTIFY NEGATIVE-LONGITUDE OBSERVATIONS
+# --------------------------------------------------
+#
+# Weddell observations use negative longitudes.
+# These must use the corrected Weddell ERA5 dataset.
+# --------------------------------------------------
+
+weddell_mask = df["longitude"] < 0
+
+# All other observations use the general ERA5 dataset
+general_mask = ~weddell_mask
+
+
+print(
+    "Negative-longitude observations:",
+    int(weddell_mask.sum())
+)
+
+print(
+    "General ERA5 observations:",
+    int(general_mask.sum())
 )
 
 
-df["wind_u10"] = (
-    matched["u10"].values
+# --------------------------------------------------
+# 6B. MATCH WEDDELL OBSERVATIONS
+# --------------------------------------------------
+
+if weddell_mask.any():
+
+    matched_weddell = era5_weddell.sel(
+        timestamp=xr.DataArray(
+            df.loc[weddell_mask, "timestamp"].values,
+            dims="obs"
+        ),
+        latitude=xr.DataArray(
+            df.loc[weddell_mask, "latitude"].values,
+            dims="obs"
+        ),
+        longitude=xr.DataArray(
+            df.loc[weddell_mask, "longitude"].values,
+            dims="obs"
+        ),
+        method="nearest"
+    )
+
+    df.loc[weddell_mask, "wind_u10"] = (
+        matched_weddell["u10"].values
+    )
+
+    df.loc[weddell_mask, "wind_v10"] = (
+        matched_weddell["v10"].values
+    )
+
+
+# --------------------------------------------------
+# 6C. MATCH OTHER OBSERVATIONS
+# --------------------------------------------------
+
+if general_mask.any():
+
+    matched_general = era5_general.sel(
+        timestamp=xr.DataArray(
+            df.loc[general_mask, "timestamp"].values,
+            dims="obs"
+        ),
+        latitude=xr.DataArray(
+            df.loc[general_mask, "latitude"].values,
+            dims="obs"
+        ),
+        longitude=xr.DataArray(
+            df.loc[general_mask, "longitude"].values,
+            dims="obs"
+        ),
+        method="nearest"
+    )
+
+    df.loc[general_mask, "wind_u10"] = (
+        matched_general["u10"].values
+    )
+
+    df.loc[general_mask, "wind_v10"] = (
+        matched_general["v10"].values
+    )
+
+
+# --------------------------------------------------
+# 6D. VERIFY WIND MATCHING
+# --------------------------------------------------
+
+print("\nWind matching verification:")
+
+print(
+    "Negative-longitude observations:",
+    int((df["longitude"] < 0).sum())
 )
 
-df["wind_v10"] = (
-    matched["v10"].values
+print(
+    "Negative-longitude observations with wind:",
+    int(
+        df.loc[
+            df["longitude"] < 0,
+            ["wind_u10", "wind_v10"]
+        ].dropna().shape[0]
+    )
+)
+
+print(
+    "All observations with wind:",
+    int(
+        df[
+            ["wind_u10", "wind_v10"]
+        ].dropna().shape[0]
+    )
 )
 
 

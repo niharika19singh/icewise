@@ -4,9 +4,9 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 
 
-# --------------------------------------------------
+# ==================================================
 # 1. LOAD TRAINING DATA
-# --------------------------------------------------
+# ==================================================
 
 df = pd.read_csv(
     "iceberg_training_data_2020.csv"
@@ -21,9 +21,42 @@ df = df.sort_values(
 ).reset_index(drop=True)
 
 
-# --------------------------------------------------
-# 2. CREATE PREVIOUS POSITION
-# --------------------------------------------------
+# ==================================================
+# 2. SELECT ALL ICEBERGS IN CORRECTED WEDDELL DOMAIN
+# ==================================================
+
+df = df[
+    (df["longitude"] >= -70) &
+    (df["longitude"] <= -25) &
+    (df["latitude"] >= -77.25) &
+    (df["latitude"] <= -62)
+].copy()
+
+
+print("=" * 60)
+print("BROADER WEDDELL-DOMAIN HYBRID PREDICTION MODEL")
+print("=" * 60)
+
+print(
+    f"Total observations: {len(df)}"
+)
+
+print(
+    f"Icebergs: {df['iceberg_id'].nunique()}"
+)
+
+print("\nIcebergs included:")
+
+print(
+    df.groupby("iceberg_id")
+    .size()
+    .sort_values(ascending=False)
+)
+
+
+# ==================================================
+# 3. CREATE PREVIOUS POSITION
+# ==================================================
 
 df["prev_latitude"] = (
     df.groupby("iceberg_id")["latitude"]
@@ -36,9 +69,9 @@ df["prev_longitude"] = (
 )
 
 
-# --------------------------------------------------
-# 3. REMOVE INVALID FIRST OBSERVATIONS
-# --------------------------------------------------
+# ==================================================
+# 4. REMOVE INVALID FIRST OBSERVATIONS
+# ==================================================
 
 df = df.dropna(
     subset=[
@@ -53,9 +86,9 @@ df = df.dropna(
 ).copy()
 
 
-# --------------------------------------------------
-# 4. REMOVE UNREALISTIC TIME GAPS
-# --------------------------------------------------
+# ==================================================
+# 5. REMOVE UNREALISTIC TIME GAPS
+# ==================================================
 
 df = df[
     (df["dt_hours"] > 0) &
@@ -63,22 +96,13 @@ df = df[
 ].copy()
 
 
-# --------------------------------------------------
-# 5. CALIBRATE PHYSICS MODEL
-# --------------------------------------------------
-#
-# We estimate the relationship between wind and
-# observed iceberg velocity using the TRAINING
-# PERIOD ONLY.
-#
-# This prevents test-period information leaking
-# into the model.
-# --------------------------------------------------
+# ==================================================
+# 6. CHRONOLOGICAL TRAIN / TEST SPLIT
+# ==================================================
 
 split_time = pd.Timestamp(
     "2020-10-01"
 )
-
 
 train_mask = (
     df["timestamp"] < split_time
@@ -88,19 +112,14 @@ test_mask = (
     df["timestamp"] >= split_time
 )
 
-
 train = df[train_mask].copy()
 
 test = df[test_mask].copy()
 
 
+print("\n" + "=" * 60)
+print("CHRONOLOGICAL HOLDOUT")
 print("=" * 60)
-print("ICEBERG HYBRID PREDICTION MODEL")
-print("=" * 60)
-
-print(
-    f"Total observations : {len(df)}"
-)
 
 print(
     f"Training observations: {len(train)}"
@@ -120,10 +139,31 @@ print(
     f"{test['iceberg_id'].nunique()}"
 )
 
+print(
+    f"Training dates: "
+    f"{train['timestamp'].min()} "
+    f"to "
+    f"{train['timestamp'].max()}"
+)
 
-# --------------------------------------------------
-# 6. CALIBRATE EAST-WEST PHYSICS
-# --------------------------------------------------
+print(
+    f"Testing dates: "
+    f"{test['timestamp'].min()} "
+    f"to "
+    f"{test['timestamp'].max()}"
+)
+
+print("\nTest observations by iceberg:")
+
+print(
+    test.groupby("iceberg_id")
+    .size()
+)
+
+
+# ==================================================
+# 7. CALIBRATE EAST-WEST PHYSICS MODEL
+# ==================================================
 
 X_u = np.column_stack([
     train["wind_u10"].values,
@@ -137,9 +177,9 @@ coef_u = np.linalg.lstsq(
 )[0]
 
 
-# --------------------------------------------------
-# 7. CALIBRATE NORTH-SOUTH PHYSICS
-# --------------------------------------------------
+# ==================================================
+# 8. CALIBRATE NORTH-SOUTH PHYSICS MODEL
+# ==================================================
 
 X_v = np.column_stack([
     train["wind_v10"].values,
@@ -170,9 +210,9 @@ print(
 )
 
 
-# --------------------------------------------------
-# 8. PHYSICS PREDICTIONS
-# --------------------------------------------------
+# ==================================================
+# 9. PHYSICS PREDICTIONS
+# ==================================================
 
 train["physics_u"] = (
     coef_u[0] * train["wind_u10"]
@@ -183,7 +223,6 @@ train["physics_v"] = (
     coef_v[0] * train["wind_v10"]
     + coef_v[1]
 )
-
 
 test["physics_u"] = (
     coef_u[0] * test["wind_u10"]
@@ -196,24 +235,24 @@ test["physics_v"] = (
 )
 
 
-# --------------------------------------------------
-# 9. CREATE RESIDUAL TARGET
-# --------------------------------------------------
+# ==================================================
+# 10. CREATE RESIDUAL TARGET
+# ==================================================
 
 train["residual_u"] = (
-    train["observed_u"] -
-    train["physics_u"]
+    train["observed_u"]
+    - train["physics_u"]
 )
 
 train["residual_v"] = (
-    train["observed_v"] -
-    train["physics_v"]
+    train["observed_v"]
+    - train["physics_v"]
 )
 
 
-# --------------------------------------------------
-# 10. ML FEATURES
-# --------------------------------------------------
+# ==================================================
+# 11. ML FEATURES
+# ==================================================
 
 features = [
     "wind_u10",
@@ -223,11 +262,9 @@ features = [
     "dt_hours"
 ]
 
-
 X_train = train[features]
 
 X_test = test[features]
-
 
 y_train = train[
     [
@@ -237,12 +274,11 @@ y_train = train[
 ]
 
 
-# --------------------------------------------------
-# 11. TRAIN RANDOM FOREST
-# --------------------------------------------------
+# ==================================================
+# 12. TRAIN RANDOM FOREST
+# ==================================================
 
 print("\nTraining Random Forest...")
-
 
 model = RandomForestRegressor(
     n_estimators=200,
@@ -252,25 +288,24 @@ model = RandomForestRegressor(
     n_jobs=-1
 )
 
-
 model.fit(
     X_train,
     y_train
 )
 
 
-# --------------------------------------------------
-# 12. PREDICT RESIDUAL
-# --------------------------------------------------
+# ==================================================
+# 13. PREDICT RESIDUAL
+# ==================================================
 
 predicted_residual = model.predict(
     X_test
 )
 
 
-# --------------------------------------------------
-# 13. HYBRID VELOCITY
-# --------------------------------------------------
+# ==================================================
+# 14. HYBRID VELOCITY
+# ==================================================
 
 test["hybrid_u"] = (
     test["physics_u"].values
@@ -283,9 +318,9 @@ test["hybrid_v"] = (
 )
 
 
-# --------------------------------------------------
-# 14. PHYSICS ERROR
-# --------------------------------------------------
+# ==================================================
+# 15. PHYSICS ERROR
+# ==================================================
 
 test["physics_error"] = np.sqrt(
     (
@@ -300,9 +335,9 @@ test["physics_error"] = np.sqrt(
 )
 
 
-# --------------------------------------------------
-# 15. HYBRID ERROR
-# --------------------------------------------------
+# ==================================================
+# 16. HYBRID ERROR
+# ==================================================
 
 test["hybrid_error"] = np.sqrt(
     (
@@ -317,9 +352,9 @@ test["hybrid_error"] = np.sqrt(
 )
 
 
-# --------------------------------------------------
-# 16. MODEL METRICS
-# --------------------------------------------------
+# ==================================================
+# 17. MODEL METRICS
+# ==================================================
 
 physics_mae = (
     test["physics_error"].mean()
@@ -328,7 +363,6 @@ physics_mae = (
 hybrid_mae = (
     test["hybrid_error"].mean()
 )
-
 
 physics_rmse = np.sqrt(
     np.mean(
@@ -343,12 +377,27 @@ hybrid_rmse = np.sqrt(
 )
 
 
-# --------------------------------------------------
-# 17. PRINT RESULTS
-# --------------------------------------------------
+# ==================================================
+# 18. IMPROVEMENT CALCULATIONS
+# ==================================================
+
+mae_improvement = (
+    (physics_mae - hybrid_mae)
+    / physics_mae
+) * 100
+
+rmse_improvement = (
+    (physics_rmse - hybrid_rmse)
+    / physics_rmse
+) * 100
+
+
+# ==================================================
+# 19. PRINT MODEL COMPARISON
+# ==================================================
 
 print("\n" + "=" * 60)
-print("MODEL COMPARISON")
+print("BROADER WEDDELL-DOMAIN MODEL COMPARISON")
 print("=" * 60)
 
 print(
@@ -371,23 +420,20 @@ print(
     f"{hybrid_rmse:.6f} m/s"
 )
 
+print(
+    f"\nMAE improvement: "
+    f"{mae_improvement:.2f}%"
+)
 
-if physics_mae > 0:
-
-    improvement = (
-        (physics_mae - hybrid_mae)
-        / physics_mae
-    ) * 100
-
-    print(
-        f"\nHybrid improvement: "
-        f"{improvement:.2f}%"
-    )
+print(
+    f"RMSE improvement: "
+    f"{rmse_improvement:.2f}%"
+)
 
 
-# --------------------------------------------------
-# 18. FEATURE IMPORTANCE
-# --------------------------------------------------
+# ==================================================
+# 20. FEATURE IMPORTANCE
+# ==================================================
 
 importance = pd.DataFrame({
     "feature": features,
@@ -411,15 +457,17 @@ print(
 )
 
 
-# --------------------------------------------------
-# 19. SAVE RESULTS
-# --------------------------------------------------
+# ==================================================
+# 21. SAVE RESULTS
+# ==================================================
 
 test.to_csv(
-    "hybrid_test_results_2020.csv",
+    "hybrid_weddell_domain_test_results_2020.csv",
     index=False
 )
 
 
 print("\nSaved:")
-print("hybrid_test_results_2020.csv")
+print(
+    "hybrid_weddell_domain_test_results_2020.csv"
+)

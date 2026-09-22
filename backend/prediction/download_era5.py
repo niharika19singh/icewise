@@ -1,8 +1,6 @@
 import cdsapi
 
-
 client = cdsapi.Client()
-
 
 client.retrieve(
     "reanalysis-era5-single-levels",
@@ -42,17 +40,17 @@ client.retrieve(
         "data_format": "netcdf",
         "download_format": "unarchived",
 
-        # Larger Antarctic region
+        # Weddell Sea
+        # North, West, South, East
         "area": [
-            -55.0,   # North
-            0.0,     # West
-            -75.0,   # South
-            180.0,   # East
+            -62.0,
+            -70.0,
+            -77.25,
+            -25.0,
         ],
     },
 
-    "era5_antarctic_wind_2020.nc",
+    "era5_weddell_wind_2020.nc",
 )
 
-
-print("ERA5 Antarctic wind download complete.")
+print("Weddell ERA5 wind download complete.")
