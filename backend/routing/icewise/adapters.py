@@ -287,6 +287,17 @@ class IcebergPredictionAdapter:
             spatial_unc = max(uncertainties) if uncertainties else 2.5
             spatial_unc = max(0.5, float(spatial_unc))
 
+            # ADAPTER DEFAULTS — NOT MODEL OUTPUTS. iceberg_prediction_dataset.csv has no
+            # confidence, drift or size columns, so these are placeholders until the
+            # prediction module supplies real values. What the risk engine actually uses:
+            #   confidence_score  -> REQUIRED input: it multiplies every iceberg's collision
+            #                        probability (risk_engine.py), so 0.90 scales all iceberg
+            #                        risk. It is a constant, not an estimate of model quality.
+            #   spatial_uncertainty_km -> REQUIRED input (from the CSV's uncertainty_km, max
+            #                        over horizons; itself a heuristic in the generator).
+            #   drift_velocity_knots / drift_bearing_deg / size_category -> NOT used by any
+            #                        calculation; display metadata only, left at neutral
+            #                        values rather than invented.
             predictions.append(
                 IcebergPrediction(
                     iceberg_id=iid,

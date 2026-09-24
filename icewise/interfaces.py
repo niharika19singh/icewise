@@ -227,6 +227,11 @@ class NavigationRouteResult:
     recalculated: bool = False
     notes: List[str] = field(default_factory=list)
     comparison: Optional[Dict[str, Any]] = None  # Route comparison metrics vs baseline
+    # Real per-waypoint risk score (same values calculate_route_metrics used to
+    # derive mean/max_risk_score), one entry per waypoint, in order. Lets a
+    # consumer show risk(lat, lon, ETA) evolving along the route — e.g. a
+    # mission replay — instead of only the two aggregate scalars in metrics.
+    waypoint_risks: Optional[List[float]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         res = {
@@ -240,5 +245,7 @@ class NavigationRouteResult:
         }
         if self.comparison is not None:
             res["comparison"] = self.comparison
+        if self.waypoint_risks is not None:
+            res["waypoint_risks"] = [round(r, 4) for r in self.waypoint_risks]
         return res
 

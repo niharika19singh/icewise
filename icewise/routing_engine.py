@@ -2,6 +2,24 @@
 Route Optimization Engine for ICEWISE Navigation Decision Support System.
 Implements A* and Dijkstra pathfinding algorithms over geospatial grid graphs,
 utilizing a multi-objective risk-adjusted cost function for ice-safe maritime routing.
+
+KNOWN LIMITATION — path search is NOT time-dependent.
+Edge costs use the STATIC risk stored on each grid node (grid_graph.py: the
+forecast envelope, i.e. the worst case over every forecast position of every
+iceberg, independent of when the vessel arrives). Only the reported route
+metrics (metrics.py) evaluate risk at each waypoint's ETA. This is conservative
+(a cell an iceberg is predicted to occupy at ANY forecast time is penalised) but
+it cannot exploit timing, e.g. crossing a cell before an iceberg arrives.
+
+Making the search time-dependent was measured and rejected for now:
+  - the cost being minimised is risk-weighted, not elapsed time, so the arrival
+    time at a node depends on which path reached it; correct time-dependent A*
+    needs a time-expanded graph, not a change to the cost function;
+  - a per-edge time-dependent lookup costs ~90 microseconds (37 icebergs); a
+    demo-size search has ~49,000 candidate edge lookups, and every request runs
+    5 searches (3 strategies + baseline + primary), i.e. up to ~20 s of extra
+    worst-case work on the demo corridor alone.
+Revisit with a precomputed time-indexed risk grid rather than per-edge evaluation.
 """
 
 import heapq

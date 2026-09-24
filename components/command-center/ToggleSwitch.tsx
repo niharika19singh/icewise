@@ -17,8 +17,8 @@ export default function ToggleSwitch({
       aria-label={label}
       onClick={onChange}
       disabled={disabled}
-      className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-        checked ? "border-ice/50 bg-ice/25" : "border-frost/15 bg-frost/5"
+      className={`relative h-5 w-9 shrink-0 rounded-full border transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+        checked ? "shadow-glow-ice-sm border-ice/50 bg-ice/25" : "border-frost/15 bg-frost/5"
       }`}
     >
       <span
