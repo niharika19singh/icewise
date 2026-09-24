@@ -77,7 +77,7 @@ export default function AdaptiveReroutingView({
 
   const layerVisibility: LayerVisibility = {
     icebergs: true,
-    trajectories: false,
+    trajectories: true,
     initialRoute: true,
     adaptiveRoute: true,
     seaIce: false,
@@ -134,8 +134,30 @@ export default function AdaptiveReroutingView({
       </div>
 
       <div className="flex min-h-0 flex-1 gap-4">
-        <div className="flex min-h-0 flex-[2] min-w-0">
+        <div className="flex min-h-0 min-w-0 flex-[2] flex-col gap-2">
+            {/* Rerouting story, every value from the real route / recalculation responses. */}
+            <ol className="shadow-panel grid shrink-0 grid-cols-4 overflow-hidden rounded-lg border border-line bg-abyss-raised/70 font-mono text-[9px] uppercase tracking-mission backdrop-blur-md">
+              {[
+                { k: "Hazard detected", v: `${recalculatedRoute.icebergs.length} corridor iceberg${recalculatedRoute.icebergs.length === 1 ? "" : "s"}`, c: "#ff5a36" },
+                { k: "Original route", v: `${before.total_distance_km.toFixed(1)} km · ${(before.max_risk_score * 100).toFixed(1)}% max`, c: "#2ee6ff" },
+                { k: "Rerouting", v: "Latest observations", c: "#ffc93c" },
+                { k: "New route", v: `${after.total_distance_km.toFixed(1)} km · ${(after.max_risk_score * 100).toFixed(1)}% max`, c: "#39ffb0" },
+              ].map((step, i) => (
+                <li key={step.k} className="flex min-w-0 items-center gap-2 border-l border-line/40 px-3 py-2 first:border-l-0">
+                  {i > 0 && <span aria-hidden className="-ml-1 text-mist/60">→</span>}
+                  <span className="min-w-0 leading-tight">
+                    <span className="block" style={{ color: step.c }}>{step.k}</span>
+                    <span className="block truncate normal-case tracking-normal text-frost/85">{step.v}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          <div className="flex min-h-0 flex-1">
           <AntarcticMap
+            heroBasemap
+            heroImage="/images/adaptive-rerouting-basemap.webp"
+            rerouteFocus
+            compactLegend
             route={route}
             recalculatedRoute={recalculatedRoute}
             activeModule="map"
@@ -149,6 +171,7 @@ export default function AdaptiveReroutingView({
             draftStart={null}
             draftDestination={null}
           />
+          </div>
         </div>
 
         <div className="flex w-[340px] shrink-0 flex-col gap-3 overflow-y-auto">

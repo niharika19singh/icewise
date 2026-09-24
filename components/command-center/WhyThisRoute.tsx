@@ -1,5 +1,5 @@
 import { StrategyDot } from "./RouteIntelligence";
-import { routeStrategyColor, routeStrategyDisplayName } from "./routeStyle";
+import { routeStrategyColorFor, routeStrategyDisplayName } from "./routeStyle";
 import { computeTradeoffs, pickActiveStrategy, type RouteTradeoff } from "./missionAnalysis";
 import type { RouteResponse } from "./types";
 
@@ -17,8 +17,8 @@ function formatSigned(value: number, unit: string, decimals: number): string {
   return `${sign}${Math.abs(value).toFixed(decimals)}${unit}`;
 }
 
-function TradeoffRow({ tradeoff }: { tradeoff: RouteTradeoff }) {
-  const color = routeStrategyColor(tradeoff.label);
+function TradeoffRow({ tradeoff, neon }: { tradeoff: RouteTradeoff; neon: boolean }) {
+  const color = routeStrategyColorFor(tradeoff.label, neon);
   const name = routeStrategyDisplayName(tradeoff.label);
   return (
     <div
@@ -52,14 +52,17 @@ function TradeoffRow({ tradeoff }: { tradeoff: RouteTradeoff }) {
 export default function WhyThisRoute({
   route,
   selectedRouteOptionId,
+  neon = false,
 }: {
   route: RouteResponse;
   selectedRouteOptionId: string | null;
+  // Neon route palette (Command Center hero map); default keeps the standard colors.
+  neon?: boolean;
 }) {
   const active = pickActiveStrategy(route.route_options, selectedRouteOptionId);
   if (!active) return null;
 
-  const color = routeStrategyColor(active.label);
+  const color = routeStrategyColorFor(active.label, neon);
   const name = routeStrategyDisplayName(active.label);
   const tradeoffs = computeTradeoffs(active, route.route_options ?? []);
 
@@ -84,7 +87,7 @@ export default function WhyThisRoute({
           </p>
           <div className="mt-1.5 flex flex-col gap-1.5">
             {tradeoffs.map((t) => (
-              <TradeoffRow key={t.routeId} tradeoff={t} />
+              <TradeoffRow key={t.routeId} tradeoff={t} neon={neon} />
             ))}
           </div>
         </>

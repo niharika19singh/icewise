@@ -3,9 +3,10 @@
 import { useState } from "react";
 import AntarcticMap from "./AntarcticMap";
 import MissionPlanner, { type MissionFields, type PickTarget, type MissionPoint } from "./MissionPlanner";
+import type { VesselRequest } from "./replay";
 import MissionReplay from "./MissionReplay";
 import { StrategyDot } from "./RouteIntelligence";
-import { routeStrategyColor, routeStrategyDisplayName } from "./routeStyle";
+import { routeStrategyColorFor, routeStrategyDisplayName } from "./routeStyle";
 import type { RouteNotices } from "./routeNotices";
 import type { MissionEventKind } from "./MissionEventLog";
 import {
@@ -41,6 +42,7 @@ export default function MissionOverviewView({
   isDemoMission,
   missionDirty,
   routeNotices,
+  vessel,
   onPickPoint,
   draftStart,
   draftDestination,
@@ -64,6 +66,7 @@ export default function MissionOverviewView({
   isDemoMission: boolean;
   missionDirty: boolean;
   routeNotices: RouteNotices;
+  vessel: VesselRequest;
   onPickPoint: (point: MissionPoint) => void;
   draftStart: MissionPoint | null;
   draftDestination: MissionPoint | null;
@@ -99,6 +102,7 @@ export default function MissionOverviewView({
     <div className="flex min-h-0 flex-1 gap-4 overflow-hidden">
       <div className="flex min-h-0 min-w-0 flex-[3] flex-col gap-3">
         <AntarcticMap
+          heroBasemap
           route={route}
           recalculatedRoute={recalculatedRoute}
           activeModule="routes"
@@ -144,6 +148,7 @@ export default function MissionOverviewView({
           hasRoute={!!route}
           dirty={missionDirty}
           notices={routeNotices}
+          vessel={vessel}
         />
 
         {route && strategies.length > 0 && (
@@ -151,7 +156,7 @@ export default function MissionOverviewView({
             <h3 className="font-mono text-xs uppercase tracking-mission-wide text-ice">Route Strategies</h3>
             <div className="mt-2 flex flex-col">
               {strategies.map((opt) => {
-                const color = routeStrategyColor(opt.label);
+                const color = routeStrategyColorFor(opt.label, true);
                 const name = routeStrategyDisplayName(opt.label);
                 const isSelected = opt.route_id === selectedRouteOptionId;
                 return (

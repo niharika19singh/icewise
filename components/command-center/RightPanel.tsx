@@ -3,6 +3,7 @@ import IcebergIntelligence from "./IcebergIntelligence";
 import RouteIntelligence, { RoutePlanStats } from "./RouteIntelligence";
 import SeaIceIntelligence from "./SeaIceIntelligence";
 import MissionPlanner, { type MissionFields, type PickTarget } from "./MissionPlanner";
+import type { VesselRequest } from "./replay";
 import MissionEventLog, { type MissionEvent } from "./MissionEventLog";
 import type { RouteNotices } from "./routeNotices";
 import type { RouteResponse, LayerId, LayerVisibility, SeaIceGeoJSON, OperatorError } from "./types";
@@ -35,6 +36,7 @@ export default function RightPanel({
   isDemoMission,
   missionDirty,
   routeNotices,
+  vessel,
   missionEvents,
 }: {
   route: RouteResponse | null;
@@ -64,6 +66,7 @@ export default function RightPanel({
   isDemoMission: boolean;
   missionDirty: boolean;
   routeNotices: RouteNotices;
+  vessel: VesselRequest;
   missionEvents: MissionEvent[];
 }) {
   const icebergsMode = activeModule === "icebergs";
@@ -104,6 +107,7 @@ export default function RightPanel({
         hasRoute={!!route}
         dirty={missionDirty}
         notices={routeNotices}
+        vessel={vessel}
       />
       <div
         aria-busy={routeLoading && describesRoute}
@@ -139,6 +143,7 @@ export default function RightPanel({
               selectedRouteOptionId={selectedRouteOptionId}
               onSelectRouteOption={onSelectRouteOption}
               busy={routeLoading}
+              neon
             />
           ) : (
             <PlaceholderBody loading={routeLoading} failed={!!routeError} />

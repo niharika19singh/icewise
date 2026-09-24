@@ -1,8 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import AntarcticMap from "./AntarcticMap";
+import ToggleSwitch from "./ToggleSwitch";
 import WhyThisRoute from "./WhyThisRoute";
 import MissionThreatTimeline from "./MissionThreatTimeline";
 import { StrategyDot } from "./RouteIntelligence";
-import { routeStrategyColor, routeStrategyDisplayName } from "./routeStyle";
+import { routeStrategyColorFor, routeStrategyDisplayName } from "./routeStyle";
 import { pickActiveStrategy } from "./missionAnalysis";
 import { isRouteOption, type RouteResponse, type LayerVisibility, type SeaIceGeoJSON } from "./types";
 
@@ -39,6 +43,11 @@ export default function NavigationIntelligenceView({
   selectedIcebergId: string | null;
   onSelectIceberg: (id: string | null) => void;
 }) {
+  // Map layer toggles for this view's forecast map (trajectories and their
+  // 24/48/72 h points on by default so the real forecast reads immediately).
+  const [layers, setLayers] = useState({ icebergs: true, trajectories: true, uncertainty: true, seaIce: false });
+  const toggle = (key: keyof typeof layers) => setLayers((l) => ({ ...l, [key]: !l[key] }));
+
   if (!route) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
@@ -54,12 +63,18 @@ export default function NavigationIntelligenceView({
   const active = pickActiveStrategy(route.route_options, selectedRouteOptionId);
   const strategies = (route.route_options ?? []).filter(isRouteOption);
   const layerVisibility: LayerVisibility = {
-    icebergs: true,
-    trajectories: false,
+    icebergs: layers.icebergs,
+    trajectories: layers.trajectories,
     initialRoute: true,
     adaptiveRoute: false,
-    seaIce: false,
+    seaIce: layers.seaIce,
   };
+  const toggles: { key: keyof typeof layers; label: string; disabled?: boolean }[] = [
+    { key: "icebergs", label: "Icebergs" },
+    { key: "trajectories", label: "Trajectories" },
+    { key: "uncertainty", label: "Uncertainty" },
+    { key: "seaIce", label: "Sea Ice", disabled: !seaIce },
+  ];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
@@ -80,8 +95,14 @@ export default function NavigationIntelligenceView({
       </div>
 
       <div className="flex min-h-0 flex-1 gap-4 overflow-hidden">
-        <div className="flex min-h-0 w-[420px] shrink-0">
+        <div className="flex min-h-0 w-[420px] shrink-0 flex-col gap-2">
           <AntarcticMap
+            heroBasemap
+            heroImage="/images/navigation-intelligence-basemap.webp"
+            forecastFocus
+            compactLegend
+            showUncertainty={layers.uncertainty}
+            seaIceOverlay
             route={route}
             recalculatedRoute={recalculatedRoute}
             activeModule="routes"
@@ -95,6 +116,14 @@ export default function NavigationIntelligenceView({
             draftStart={null}
             draftDestination={null}
           />
+          <div className="shadow-panel grid shrink-0 grid-cols-2 gap-x-4 gap-y-2 rounded-lg border border-line bg-abyss-raised/70 px-4 py-2.5 backdrop-blur-md">
+            {toggles.map((t) => (
+              <label key={t.key} className="flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-mission text-frost/85">
+                {t.label}
+                <ToggleSwitch checked={layers[t.key] && !t.disabled} onChange={() => toggle(t.key)} label={t.label} disabled={t.disabled} />
+              </label>
+            ))}
+          </div>
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
@@ -103,7 +132,7 @@ export default function NavigationIntelligenceView({
               <p className="font-mono text-[10px] uppercase tracking-mission-wide text-ice">Route Comparison</p>
               <div className="mt-3 grid grid-cols-3 gap-3">
                 {strategies.map((opt) => {
-                  const color = routeStrategyColor(opt.label);
+                  const color = routeStrategyColorFor(opt.label, true);
                   const name = routeStrategyDisplayName(opt.label);
                   const isSelected = opt.route_id === selectedRouteOptionId || (!selectedRouteOptionId && opt.route_id === active?.route_id);
                   return (
@@ -142,7 +171,7 @@ export default function NavigationIntelligenceView({
               content in the standard sidebar — stripped here since each now
               opens its own panel instead. */}
           <div className="shadow-panel rounded-lg border border-line bg-abyss-raised/60 p-6 backdrop-blur-md [&>div]:mt-0 [&>div]:border-t-0 [&>div]:pt-0">
-            <WhyThisRoute route={route} selectedRouteOptionId={selectedRouteOptionId} />
+            <WhyThisRoute route={route} selectedRouteOptionId={selectedRouteOptionId} neon />
           </div>
 
           <div className="shadow-panel rounded-lg border border-line bg-abyss-raised/60 p-6 backdrop-blur-md [&>div]:mt-0 [&>div]:border-t-0 [&>div]:pt-0">

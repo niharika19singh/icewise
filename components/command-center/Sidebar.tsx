@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import {
+  SettingsIcon,
   MapIcon,
   IcebergIcon,
   SeaIceIcon,
@@ -31,6 +32,16 @@ export default function Sidebar({
   return (
     <nav className="shadow-panel flex w-20 shrink-0 flex-col items-center justify-between rounded-lg border border-line bg-abyss-raised/60 py-4 backdrop-blur-md">
       <ul className="flex flex-col items-stretch gap-1">
+        <li>
+          {/* Pre-mission vessel & mission configuration is its own page — navigates away. */}
+          <Link
+            href="/mission-configuration"
+            className={`${navButtonClass} border-transparent text-center leading-tight text-mist hover:text-ice`}
+          >
+            <SettingsIcon className="h-4.5 w-4.5" />
+            Vessel &amp; Mission
+          </Link>
+        </li>
         {navItems.map(({ id, label, icon: Icon }) => {
           const isActive = active === id;
           return (

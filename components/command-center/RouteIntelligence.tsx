@@ -1,7 +1,7 @@
 import ErrorNotice from "./ErrorNotice";
 import WhyThisRoute from "./WhyThisRoute";
 import MissionThreatTimeline from "./MissionThreatTimeline";
-import { routeStrategyColor, routeStrategyDisplayName } from "./routeStyle";
+import { routeStrategyColorFor, routeStrategyDisplayName } from "./routeStyle";
 import { isRouteOption, type RouteResponse, type RouteOptionResult, type OperatorError } from "./types";
 
 // Small colored SVG dot — the route strategy's color is the primary visual
@@ -65,10 +65,12 @@ function RouteOptionsList({
   options,
   selectedId,
   onSelect,
+  neon,
 }: {
   options: RouteOptionResult[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  neon: boolean;
 }) {
   return (
     <div className="mt-5 border-t border-line/60 pt-4">
@@ -84,7 +86,7 @@ function RouteOptionsList({
 
       <div className="mt-1.5 flex flex-col gap-1.5">
         {options.map((opt) => {
-          const color = routeStrategyColor(opt.label);
+          const color = routeStrategyColorFor(opt.label, neon);
           const name = routeStrategyDisplayName(opt.label);
 
           // The backend reports a strategy it could not solve in-band, without a
@@ -241,6 +243,7 @@ export default function RouteIntelligence({
   selectedRouteOptionId,
   onSelectRouteOption,
   busy,
+  neon = false,
 }: {
   route: RouteResponse;
   recalculatedRoute: RouteResponse | null;
@@ -251,6 +254,8 @@ export default function RouteIntelligence({
   onSelectRouteOption: (id: string | null) => void;
   // A new route is being generated — recalculating the old one would be wasted.
   busy: boolean;
+  // Neon route palette, matching the Command Center hero map.
+  neon?: boolean;
 }) {
   return (
     <div className="mt-4 flex flex-col">
@@ -264,10 +269,11 @@ export default function RouteIntelligence({
           options={route.route_options}
           selectedId={selectedRouteOptionId}
           onSelect={onSelectRouteOption}
+          neon={neon}
         />
       )}
 
-      <WhyThisRoute route={route} selectedRouteOptionId={selectedRouteOptionId} />
+      <WhyThisRoute route={route} selectedRouteOptionId={selectedRouteOptionId} neon={neon} />
       <MissionThreatTimeline route={route} selectedRouteOptionId={selectedRouteOptionId} />
 
       <button

@@ -20,7 +20,15 @@ import {
   type PickTarget,
 } from "./MissionPlanner";
 import { describeRouteNotices } from "./routeNotices";
-import { REPLAY_TIMESTAMP, DEMO_VESSEL } from "./replay";
+import { REPLAY_TIMESTAMP, DEMO_VESSEL, DEMO_MISSION, type VesselRequest } from "./replay";
+import { classifyRouteStrategy, routeStrategyDisplayName } from "./routeStyle";
+import {
+  loadMissionConfig,
+  consumeGenerationRequest,
+  toVesselRequest,
+  getObjective,
+  type OperationalObjective,
+} from "@/components/mission-config/missionConfig";
 import { isRouteOption, type RouteResponse, type LayerId, type LayerVisibility, type SeaIceGeoJSON, type OperatorError } from "./types";
 
 const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -32,16 +40,11 @@ const SEA_ICE_API_URL = `${BASE_API_URL}/api/sea-ice/geojson`;
 // answer its first request. The planner tells the operator when it is still waiting.
 const REQUEST_TIMEOUT_MS = 90_000;
 
-// Demo corridor prefilled so the existing demo stays easy to reproduce.
-const DEMO_MISSION: MissionFields = {
-  startLat: "-77.0",
-  startLon: "-42.0",
-  destLat: "-74.5",
-  destLon: "-40.0",
-};
 const DEMO_POINTS = validateMission(DEMO_MISSION);
 
-type GeneratedMission = { start: MissionPoint; destination: MissionPoint };
+// The vessel travels with the mission so a recalculation uses the same vessel
+// the displayed route was generated for.
+type GeneratedMission = { start: MissionPoint; destination: MissionPoint; vessel: VesselRequest };
 
 // ---------------------------------------------------------------------------
 // Requests and errors
@@ -217,6 +220,12 @@ export default function CommandCenter() {
   // --- Mission (operator input) ---
   const [missionFields, setMissionFields] = useState<MissionFields>(DEMO_MISSION);
   const [pickTarget, setPickTarget] = useState<PickTarget>(null);
+  // Vessel sent with every request: the demo vessel unless a mission was
+  // configured on /mission-configuration. The objective (null = none
+  // configured, keeping the original behavior) picks which of the backend's
+  // three computed strategies becomes the active route once one arrives.
+  const [vessel, setVessel] = useState<VesselRequest>(DEMO_VESSEL);
+  const [objective, setObjective] = useState<OperationalObjective | null>(null);
 
   // --- Route lifecycle ---
   const [route, setRoute] = useState<RouteResponse | null>(null);
@@ -316,7 +325,7 @@ export default function CommandCenter() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...DEMO_VESSEL,
+          ...generatedMission.vessel,
           start_point: generatedMission.start,
           destination: generatedMission.destination,
           initial_target_timestamp: REPLAY_TIMESTAMP,
@@ -352,11 +361,21 @@ export default function CommandCenter() {
   // state (adaptive route, selected option, selected iceberg) is reset once the
   // new route has actually arrived, so a failed request leaves the previous
   // route and its context intact and clearly labelled as such.
-  const handleGenerateRoute = () => {
+  // The configured-mission handoff passes its own values, since state set in
+  // the same tick is not visible here yet; the planner uses the current state.
+  const generateRoute = (
+    fields: MissionFields = missionFields,
+    missionVessel: VesselRequest = vessel,
+    missionObjective: OperationalObjective | null = objective,
+  ) => {
     if (routeLoading) return;
-    const validation = validateMission(missionFields);
+    const validation = validateMission(fields);
     if (!validation.valid || !validation.start || !validation.destination) return;
-    const mission: GeneratedMission = { start: validation.start, destination: validation.destination };
+    const mission: GeneratedMission = {
+      start: validation.start,
+      destination: validation.destination,
+      vessel: missionVessel,
+    };
 
     const requestId = ++routeRequestIdRef.current;
     setPickTarget(null);
@@ -369,7 +388,7 @@ export default function CommandCenter() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...DEMO_VESSEL,
+          ...mission.vessel,
           start_point: mission.start,
           destination: mission.destination,
           target_timestamp: REPLAY_TIMESTAMP,
@@ -386,8 +405,18 @@ export default function CommandCenter() {
         setRecalculatedRoute(null);
         setRecalculating(false);
         setRecalculateError(null);
-        setSelectedRouteOptionId(null);
         setSelectedIcebergId(null);
+
+        // Configured objective -> the matching real strategy from route_options.
+        // Left unselected (the existing default) when no objective is set or
+        // that strategy could not be solved for this mission.
+        const wanted = missionObjective ? getObjective(missionObjective) : null;
+        const matched = wanted
+          ? (data.route_options ?? [])
+              .filter(isRouteOption)
+              .find((o) => classifyRouteStrategy(o.label) === wanted.strategy)
+          : undefined;
+        setSelectedRouteOptionId(matched?.route_id ?? null);
 
         pushMissionEvent(
           "Mission generated",
@@ -400,6 +429,15 @@ export default function CommandCenter() {
             "Hazard threshold triggered",
             `${failedStrategies.map((o) => o.label).join(", ")} — no route found under the current risk threshold`,
             "warn",
+          );
+        }
+        if (wanted) {
+          pushMissionEvent(
+            matched ? "Operational objective applied" : "Operational objective unavailable",
+            matched
+              ? `${wanted.label} → ${routeStrategyDisplayName(matched.label)} strategy set as the active route`
+              : `${wanted.label}: that strategy has no route for this mission — showing the default route`,
+            matched ? "info" : "warn",
           );
         }
       })
@@ -421,6 +459,45 @@ export default function CommandCenter() {
     );
     setPickTarget(null);
   };
+
+  const handleGenerateRoute = () => generateRoute();
+
+  // Deep link from the Mission Planner's navigation (?view=overview|intelligence|rerouting).
+  // Declared before the handoff below so a configured-mission handoff still
+  // opens Mission Overview. Client-only, read once on mount.
+  useEffect(() => {
+    const view = new URLSearchParams(window.location.search).get("view");
+    if (view === "overview" || view === "intelligence" || view === "rerouting") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPresentationView(view);
+    }
+  }, []);
+
+  // Handoff from /mission-configuration: adopt the configured vessel, mission
+  // and objective and, when the operator pressed Generate Mission there, run
+  // the normal generation for it and open Mission Overview. Client-only
+  // (sessionStorage), so it runs after mount rather than as initial state.
+  useEffect(() => {
+    const config = loadMissionConfig();
+    if (!config) return;
+    const configuredVessel = toVesselRequest(config);
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setMissionFields(config.fields);
+    setVessel(configuredVessel);
+    setObjective(config.objective);
+    /* eslint-enable react-hooks/set-state-in-effect */
+    pushMissionEvent(
+      "Mission configuration loaded",
+      `${configuredVessel.vessel_name} · ${configuredVessel.cruise_speed_knots.toFixed(1)} kn · ` +
+        `${configuredVessel.fuel_consumption_rate_tons_per_day.toFixed(1)} t/day · ${getObjective(config.objective).label}`,
+    );
+    if (consumeGenerationRequest()) {
+      setPresentationView("overview");
+      generateRoute(config.fields, configuredVessel, config.objective);
+    }
+    // Mount-only handoff; generateRoute is only called here with explicit arguments.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleResetDemo = () => {
     setMissionFields(DEMO_MISSION);
@@ -491,6 +568,7 @@ export default function CommandCenter() {
 
           <div className="flex min-w-0 flex-1 flex-col gap-4 overflow-hidden">
             <AntarcticMap
+              heroBasemap
               route={route}
               recalculatedRoute={recalculatedRoute}
               activeModule={activeModule}
@@ -542,6 +620,7 @@ export default function CommandCenter() {
             isDemoMission={isDemoMission}
             missionDirty={missionDirty}
             routeNotices={routeNotices}
+            vessel={vessel}
             missionEvents={missionEvents}
           />
         </div>
@@ -568,6 +647,7 @@ export default function CommandCenter() {
             isDemoMission={isDemoMission}
             missionDirty={missionDirty}
             routeNotices={routeNotices}
+            vessel={vessel}
             onPickPoint={handlePickPoint}
             draftStart={draftStart}
             draftDestination={draftDestination}

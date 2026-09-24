@@ -6,7 +6,7 @@ import type { RouteNotices } from "./routeNotices";
 import ErrorNotice from "./ErrorNotice";
 import { PinIcon } from "./icons";
 import { PIN_COLORS } from "./routeStyle";
-import { REPLAY_DATE_LABEL, DEMO_VESSEL } from "./replay";
+import { REPLAY_DATE_LABEL, DEMO_VESSEL, type VesselRequest } from "./replay";
 
 export type MissionFields = {
   startLat: string;
@@ -220,6 +220,7 @@ export default function MissionPlanner({
   hasRoute,
   dirty,
   notices,
+  vessel = DEMO_VESSEL,
 }: {
   fields: MissionFields;
   onChange: (fields: MissionFields) => void;
@@ -236,6 +237,8 @@ export default function MissionPlanner({
   dirty: boolean;
   // Snapped-point and warning text taken from the current route response.
   notices: RouteNotices;
+  // Vessel sent with this mission's requests (demo vessel unless configured).
+  vessel?: VesselRequest;
 }) {
   const v = validateMission(fields);
   // A field error is hidden only while that field is being typed in, so half-typed
@@ -374,8 +377,9 @@ export default function MissionPlanner({
 
       <p className="mt-3 font-body text-[11px] leading-relaxed text-mist/70">
         Draft points are hollow markers. Latitude must be {SUPPORTED_LAT_MIN}° to {SUPPORTED_LAT_MAX}° (the supported
-        Antarctic area); the routing service checks that both points can be navigated when you generate. Demo vessel profile: {DEMO_VESSEL.cruise_speed_knots} kn,{" "}
-        {DEMO_VESSEL.fuel_consumption_rate_tons_per_day} t/day fuel — time and fuel figures are estimates for it.
+        Antarctic area); the routing service checks that both points can be navigated when you generate. {vessel === DEMO_VESSEL ? "Demo vessel profile" : vessel.vessel_name ?? "Configured vessel"}:{" "}
+        {vessel.cruise_speed_knots} kn, {vessel.fuel_consumption_rate_tons_per_day} t/day fuel — time and fuel figures are
+        estimates for it.
       </p>
     </form>
   );
