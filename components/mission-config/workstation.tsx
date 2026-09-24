@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { MissionPoint } from "@/components/command-center/MissionPlanner";
 
 export const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -148,13 +149,12 @@ export function PolarPlot({ start, destination, className }: { start?: MissionPo
 // ---------------------------------------------------------------------------
 
 // Only real destinations: this page, the Command Center and its presentation
-// views (opened via ?view=), the analytics page and the landing page.
-export type NavId = "planner" | "robustness";
-
-const NAV: { id?: NavId; label: string; href: string; icon: keyof typeof ICONS }[] = [
-  { id: "planner", label: "Vessel & Mission Configuration", href: "/mission-configuration", icon: "planner" },
+// views (opened via ?view=), the analytics page and the landing page. The
+// active item is the one whose href is the current pathname.
+const NAV: { label: string; href: string; icon: keyof typeof ICONS }[] = [
+  { label: "Vessel & Mission Configuration", href: "/mission-configuration", icon: "planner" },
   { label: "Command Center", href: "/command-center", icon: "map" },
-  { id: "robustness", label: "Route Robustness", href: "/route-robustness", icon: "robustness" },
+  { label: "Route Robustness", href: "/route-robustness", icon: "robustness" },
   { label: "Navigation Intelligence", href: "/command-center?view=intelligence", icon: "intelligence" },
   { label: "Adaptive Rerouting", href: "/command-center?view=rerouting", icon: "rerouting" },
   { label: "Mission Replay", href: "/command-center?view=overview", icon: "replay" },
@@ -162,7 +162,8 @@ const NAV: { id?: NavId; label: string; href: string; icon: keyof typeof ICONS }
   { label: "About", href: "/#about", icon: "about" },
 ];
 
-export function LeftNav({ active }: { active: NavId }) {
+export function LeftNav() {
+  const pathname = usePathname();
   return (
     <aside className="sticky top-0 hidden h-screen w-[72px] shrink-0 flex-col border-r border-[#3b8fb0]/25 bg-[linear-gradient(180deg,#07141c,#050b10)] lg:flex xl:w-[200px] 2xl:w-[236px]">
       <Link href="/" className="block px-3 pb-6 pt-6 xl:px-6" aria-label="ICEWISE home">
@@ -185,7 +186,7 @@ export function LeftNav({ active }: { active: NavId }) {
           );
           const base =
             "flex items-center justify-center gap-3 border-l-[3px] px-3 py-3.5 font-body text-[13px] transition-colors xl:justify-start xl:px-4 2xl:gap-3.5 2xl:px-5 2xl:text-[14px]";
-          return item.id !== active ? (
+          return item.href !== pathname ? (
             <Link
               key={item.label}
               href={item.href}

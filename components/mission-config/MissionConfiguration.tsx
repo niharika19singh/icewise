@@ -813,7 +813,7 @@ export default function MissionConfiguration() {
 
   return (
     <div className="flex min-h-screen bg-[#03080c] text-frost">
-      <LeftNav active="planner" />
+      <LeftNav />
 
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-3">
         <HeroMap

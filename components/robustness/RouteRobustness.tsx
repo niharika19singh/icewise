@@ -329,7 +329,7 @@ export default function RouteRobustness() {
 
   return (
     <div className="flex min-h-screen bg-[#03080c] text-frost">
-      <LeftNav active="robustness" />
+      <LeftNav />
 
       <main className="flex min-w-0 flex-1 flex-col gap-2 p-2.5">
         {/* Header */}
